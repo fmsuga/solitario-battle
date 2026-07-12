@@ -17,19 +17,15 @@ import tkinter as tk
 from tkinter import messagebox
 
 from juego import Juego
-from cartas import Dificultad
+from cartas import Dificultad, CANTIDAD_CARTAS_EN_MAZO
 import puntuacion
 from imagenes_cartas import cargar_imagen_carta, cargar_imagen_dorso, ANCHO_CARTA, ALTO_CARTA
-
-ANCHO_FILA = 7  # puramente visual: cuántas pilas entran por fila antes de saltar de línea
-ANCHO_VENTANA = 900
-ALTO_VENTANA = 700
 
 COLOR_FONDO = "#0b6623"     # verde "paño de mesa"
 COLOR_PILA = "#fdfaf5"
 COLOR_TEXTO_PILA = "#222222"
 COLOR_ACENTO = "#c62828"
-COLOR_ACENTO_HOVER = "#e53935"  # un rojo más vivo, para el efecto hover del botón de acción
+COLOR_ACENTO_HOVER = "#e53935"  # rojo más vivo, para el efecto hover del botón de acción
 COLOR_TEXTO_CLARO = "#ffe082"
 COLOR_TEXTO_MUTED = "#bcd9c0"   # info secundaria (dificultad, mazo, pilas): visible pero discreta
 COLOR_EXITO = "#aed581"
@@ -39,8 +35,27 @@ DIAMETRO_RELOJ = 62               # chico: no debe competir con el tablero
 COLOR_RELOJ_FONDO = "#1a1a1a"     # cuerpo casi negro, como un cronómetro deportivo real
 COLOR_RELOJ_ANILLO = "#e53935"    # anillo/botón rojo
 COLOR_RELOJ_DIGITOS = "#4dff88"   # dígitos verde LED: alto contraste, se lee de un vistazo
-ANCHO_MAZO = int(ANCHO_CARTA * 1.15)
-ALTO_MAZO = int(ALTO_CARTA * 1.15)
+
+# --- Tamaño de carta y layout del tablero ---
+# El tamaño de carta ya NO es fijo: se recalcula en cada partida según el
+# tamaño de PANTALLA disponible, para que las cartas se vean grandes en
+# monitores grandes y sigan entrando enteras en pantallas chicas.
+# ANCHO_CARTA/ALTO_CARTA (importados de imagenes_cartas) se usan solo como
+# referencia de PROPORCIÓN (alto/ancho de una carta real), no como tamaño final.
+RATIO_CARTA = ALTO_CARTA / ANCHO_CARTA
+
+COLUMNAS_MIN_TABLERO = 6
+COLUMNAS_MAX_TABLERO = 12
+ANCHO_CARTA_MINIMO = 60     # por debajo de esto la carta deja de leerse bien
+ANCHO_CARTA_MAXIMO = 150    # tope para que no queden gigantes en monitores enormes
+GAP_CELDA = 8               # separación total que ya suman los padx/pady de cada .grid
+
+# Márgenes conservadores para no chocar con la barra de tareas / el marco
+# de la ventana, que Tkinter no puede medir de antemano.
+MARGEN_PANTALLA_ANCHO = 60
+MARGEN_PANTALLA_ALTO = 90
+MARGEN_INFERIOR_TABLERO = 20
+MARGEN_VENTANA_AJUSTADA = 40  # aire extra alrededor del contenido medido
 
 
 def _maximizar_ventana(raiz: tk.Tk) -> None:
@@ -59,6 +74,41 @@ def _maximizar_ventana(raiz: tk.Tk) -> None:
             ancho = raiz.winfo_screenwidth()
             alto = raiz.winfo_screenheight()
             raiz.geometry(f"{ancho}x{alto}+0+0")
+
+
+def _calcular_layout_tablero(ancho_disponible: int, alto_disponible: int) -> tuple[int, int, int]:
+    """
+    Busca, entre un rango razonable de columnas, la combinación de
+    columnas + tamaño de carta más grande que entra SIN scroll en el
+    espacio disponible.
+
+    Siempre calcula para la cantidad MÁXIMA posible de celdas (las 48
+    cartas del mazo completo + 1 celda más para el propio mazo), sin
+    importar la dificultad elegida: así, si en la misma ventana se arranca
+    una partida nueva con otra dificultad, el tamaño no cambia y todo
+    sigue entrando.
+
+    Devuelve (columnas, ancho_carta, alto_carta). Si ni el tamaño mínimo
+    legible entra en el espacio disponible, igual devuelve la mejor
+    combinación encontrada — quien llama decide si hace falta recurrir
+    al modo con scroll.
+    """
+    celdas_totales = CANTIDAD_CARTAS_EN_MAZO + 1  # +1: la celda del mazo
+
+    mejor_ancho_carta = 0
+    mejor_columnas = COLUMNAS_MIN_TABLERO
+    for columnas in range(COLUMNAS_MIN_TABLERO, COLUMNAS_MAX_TABLERO + 1):
+        filas = math.ceil(celdas_totales / columnas)
+        ancho_segun_ancho = ancho_disponible / columnas - GAP_CELDA
+        ancho_segun_alto = (alto_disponible / filas - GAP_CELDA) / RATIO_CARTA
+        ancho_carta = min(ancho_segun_ancho, ancho_segun_alto, ANCHO_CARTA_MAXIMO)
+        if ancho_carta > mejor_ancho_carta:
+            mejor_ancho_carta = ancho_carta
+            mejor_columnas = columnas
+
+    ancho_carta = max(int(mejor_ancho_carta), 1)
+    alto_carta = int(ancho_carta * RATIO_CARTA)
+    return mejor_columnas, ancho_carta, alto_carta
 
 
 def elegir_dificultad(padre: tk.Tk) -> Dificultad:
@@ -109,7 +159,10 @@ class VentanaJuego:
         self.raiz = raiz
         self.raiz.title("Solitario de las 50 cartas")
         self.raiz.configure(bg=COLOR_FONDO)
-        _maximizar_ventana(self.raiz)
+        # OJO: acá todavía no se maximiza ni se fija ningún tamaño de
+        # ventana. Eso se decide en _armar_widgets_fijos, una vez armado
+        # el encabezado, cuando ya sabemos cuánto lugar le queda al
+        # tablero y podemos elegir el modo (ventana fija vs. maximizada).
 
         self.dificultad = elegir_dificultad(self.raiz)
         self.juego = Juego(dificultad=self.dificultad)
@@ -118,28 +171,24 @@ class VentanaJuego:
         self._arrastre = None  # info de la pila que se está arrastrando ahora mismo (o None)
 
         self._armar_widgets_fijos()
-        self._actualizar_pantalla()
         self._iniciar_reloj()
 
     def _armar_widgets_fijos(self) -> None:
         # --- Área con scroll que envuelve TODO el contenido de la partida ---
-        # OJO CON EL ORDEN: esto se arma PRIMERO, y recién después se crean
-        # el mazo y el botón Rendirse (más abajo). En Tkinter, entre widgets
-        # hermanos de un mismo padre, el que se crea último queda dibujado
-        # ENCIMA. La vez pasada quedó al revés y por eso el mazo y el botón
-        # quedaban tapados por este marco, que ocupa toda la ventana.
+        # El scroll solo se ACTIVA (barra + rueda del mouse) si más abajo
+        # resulta que el tablero no entra entero en pantalla. Si entra, la
+        # ventana queda con tamaño fijo y no hace falta scrollear nada.
         self.marco_juego = tk.Frame(self.raiz, bg=COLOR_FONDO)
         self.marco_juego.pack(fill="both", expand=True)
 
         self.canvas_principal = tk.Canvas(
             self.marco_juego, bg=COLOR_FONDO, highlightthickness=0
         )
-        barra_scroll = tk.Scrollbar(
+        self._barra_scroll = tk.Scrollbar(
             self.marco_juego, orient="vertical", command=self.canvas_principal.yview
         )
-        self.canvas_principal.configure(yscrollcommand=barra_scroll.set)
+        self.canvas_principal.configure(yscrollcommand=self._barra_scroll.set)
         self.canvas_principal.pack(side="left", fill="both", expand=True)
-        barra_scroll.pack(side="right", fill="y")
 
         self.marco_contenido = tk.Frame(self.canvas_principal, bg=COLOR_FONDO)
         self._id_ventana_canvas = self.canvas_principal.create_window(
@@ -159,10 +208,6 @@ class VentanaJuego:
                 self._id_ventana_canvas, width=evento.width
             ),
         )
-        # rueda del mouse: Windows/Mac mandan <MouseWheel>, Linux manda <Button-4>/<Button-5>
-        self.canvas_principal.bind_all("<MouseWheel>", self._on_rueda_mouse)
-        self.canvas_principal.bind_all("<Button-4>", lambda e: self.canvas_principal.yview_scroll(-1, "units"))
-        self.canvas_principal.bind_all("<Button-5>", lambda e: self.canvas_principal.yview_scroll(1, "units"))
 
         # --- A partir de acá, todo se cuelga de self.marco_contenido, no de self.raiz ---
         # El reloj: un cronómetro chico centrado arriba. Los movimientos van
@@ -183,13 +228,29 @@ class VentanaJuego:
         )
         self.etiqueta_movimientos.pack(pady=(4, 0))
 
-        # Info secundaria (dificultad, pilas en mesa): útil pero no crítica
-        # momento a momento, por eso queda chica y discreta.
+        # Barra de controles: info de la partida a la izquierda, y el botón
+        # de Rendirse/Terminar a la derecha. Antes este botón vivía flotando
+        # con .place() sobre una esquina de toda la PANTALLA (lejos del
+        # tablero en monitores grandes); ahora es una fila más, junto a la
+        # info que describe, como el resto de los controles de la partida.
+        barra_superior = tk.Frame(self.marco_contenido, bg=COLOR_FONDO)
+        barra_superior.pack(fill="x", padx=24, pady=(4, 2))
+
         self.etiqueta_info = tk.Label(
-            self.marco_contenido, text="", font=("Arial", 9),
+            barra_superior, text="", font=("Arial", 9),
             bg=COLOR_FONDO, fg=COLOR_TEXTO_MUTED,
         )
-        self.etiqueta_info.pack(pady=(2, 8))
+        self.etiqueta_info.pack(side="left")
+
+        self.boton_accion = tk.Button(
+            barra_superior, text="Rendirse", command=self._on_accion_principal,
+            bg=COLOR_ACENTO, fg="white", font=("Arial", 11, "bold"),
+            relief="flat", bd=0, padx=18, pady=9, cursor="hand2",
+            activebackground=COLOR_ACENTO_HOVER, activeforeground="white",
+        )
+        self.boton_accion.bind("<Enter>", lambda e: self.boton_accion.config(bg=COLOR_ACENTO_HOVER))
+        self.boton_accion.bind("<Leave>", lambda e: self.boton_accion.config(bg=COLOR_ACENTO))
+        self.boton_accion.pack(side="right")
 
         self.etiqueta_mensaje = tk.Label(
             self.marco_contenido,
@@ -202,38 +263,57 @@ class VentanaJuego:
         self.marco_tablero = tk.Frame(self.marco_contenido, bg=COLOR_FONDO)
         self.marco_tablero.pack(padx=12, pady=6)
 
-        # --- Elementos flotantes: SIEMPRE al final, para que queden arriba ---
-        # Rendirse: esquina superior derecha, pero con margen relativo (no un
-        # offset fijo en pixeles) para que en pantallas grandes no quede tan
-        # perdido/desconectado del resto. Estilo plano + hover, más prolijo
-        # que el botón "de sistema" que tenía antes.
-        self.boton_accion = tk.Button(
-            self.raiz, text="Rendirse", command=self._on_accion_principal,
-            bg=COLOR_ACENTO, fg="white", font=("Arial", 11, "bold"),
-            relief="flat", bd=0, padx=18, pady=9, cursor="hand2",
-            activebackground=COLOR_ACENTO_HOVER, activeforeground="white",
-        )
-        self.boton_accion.bind("<Enter>", lambda e: self.boton_accion.config(bg=COLOR_ACENTO_HOVER))
-        self.boton_accion.bind("<Leave>", lambda e: self.boton_accion.config(bg=COLOR_ACENTO))
-        self.boton_accion.place(relx=0.97, rely=0.035, anchor="ne")
+        # --- Con el encabezado ya armado, medimos cuánto ocupa, y con eso
+        # calculamos cuánto lugar le queda al tablero en la pantalla real.
+        self.raiz.update_idletasks()
+        alto_encabezado = self.marco_contenido.winfo_reqheight()
 
-        # El mazo: más centrado (no tan pegado al borde izquierdo) y más
-        # arriba (no tan al ras del borde inferior).
-        self.marco_mazo = tk.Frame(self.raiz, bg=COLOR_FONDO)
-        self.marco_mazo.place(relx=0.30, rely=0.86, anchor="center")
-
-        self._imagen_dorso = cargar_imagen_dorso(ANCHO_MAZO, ALTO_MAZO)  # referencia viva
-        self.boton_mazo = tk.Button(
-            self.marco_mazo, image=self._imagen_dorso, command=self._on_repartir,
-            bg=COLOR_PILA, cursor="hand2", relief="raised", bd=2,
+        ancho_pantalla = self.raiz.winfo_screenwidth()
+        alto_pantalla = self.raiz.winfo_screenheight()
+        ancho_disponible = ancho_pantalla - MARGEN_PANTALLA_ANCHO
+        alto_disponible_tablero = (
+            alto_pantalla - MARGEN_PANTALLA_ALTO - alto_encabezado - MARGEN_INFERIOR_TABLERO
         )
-        self.boton_mazo.pack()
 
-        self.etiqueta_mazo_cantidad = tk.Label(
-            self.marco_mazo, text="", font=("Arial", 15, "bold"),
-            bg=COLOR_FONDO, fg=COLOR_TEXTO_CLARO,
+        columnas, ancho_carta, alto_carta = _calcular_layout_tablero(
+            ancho_disponible, alto_disponible_tablero
         )
-        self.etiqueta_mazo_cantidad.pack(pady=(4, 0))
+        self.columnas_tablero = columnas
+        modo_ajustado = ancho_carta >= ANCHO_CARTA_MINIMO
+        # si ni el tamaño mínimo legible entra, no seguimos empeorándolo:
+        # nos quedamos con un tamaño usable y pasamos al modo con scroll.
+        self.ancho_carta = ancho_carta if modo_ajustado else max(ancho_carta, ANCHO_CARTA_MINIMO)
+        self.alto_carta = int(self.ancho_carta * RATIO_CARTA)
+
+        self._imagen_dorso = cargar_imagen_dorso(self.ancho_carta, self.alto_carta)  # referencia viva
+
+        if modo_ajustado:
+            self.raiz.resizable(False, False)
+        else:
+            # No entra sin scroll: mismo comportamiento que antes (ventana
+            # maximizada, barra de scroll y rueda del mouse habilitadas).
+            self._barra_scroll.pack(side="right", fill="y")
+            self.canvas_principal.bind_all("<MouseWheel>", self._on_rueda_mouse)
+            self.canvas_principal.bind_all("<Button-4>", lambda e: self.canvas_principal.yview_scroll(-1, "units"))
+            self.canvas_principal.bind_all("<Button-5>", lambda e: self.canvas_principal.yview_scroll(1, "units"))
+            _maximizar_ventana(self.raiz)
+
+        # El mazo se arma dentro de _actualizar_pantalla (es una celda más
+        # del tablero), así que hay que dibujar el tablero antes de poder
+        # medir el contenido final y fijar el tamaño de la ventana.
+        self._actualizar_pantalla()
+
+        if modo_ajustado:
+            self.raiz.update_idletasks()
+            ancho_ventana = min(
+                self.marco_contenido.winfo_reqwidth() + MARGEN_VENTANA_AJUSTADA, ancho_pantalla - 20
+            )
+            alto_ventana = min(
+                self.marco_contenido.winfo_reqheight() + MARGEN_VENTANA_AJUSTADA, alto_pantalla - 20
+            )
+            x = (ancho_pantalla - ancho_ventana) // 2
+            y = (alto_pantalla - alto_ventana) // 2
+            self.raiz.geometry(f"{ancho_ventana}x{alto_ventana}+{x}+{y}")
 
     def _dibujar_reloj_circular(self) -> None:
         """
@@ -398,12 +478,32 @@ class VentanaJuego:
         self._imagenes_actuales = []  # se descartan las anteriores, se cargan las nuevas
         self._botones_pilas = []      # referencias vivas, necesarias para el arrastre
 
+        columnas = self.columnas_tablero
+        cartas_restantes = self.juego.mazo.quedan_cartas()
+
+        # El mazo ocupa la celda 0: es una pila más de la grilla (mismo
+        # tamaño, mismo estilo de contador abajo), no un elemento aparte.
+        self.boton_mazo = tk.Button(
+            self.marco_tablero,
+            image=self._imagen_dorso,
+            text=f"x{cartas_restantes}",
+            compound="bottom",
+            font=FUENTE_CONTADOR,
+            bg=COLOR_PILA,
+            cursor="hand2",
+            relief="raised",
+            bd=3,  # un pelín más grueso que las pilas comunes: se distingue sin desentonar
+            command=self._on_repartir,
+        )
+        self.boton_mazo.grid(row=0, column=0, padx=4, pady=4)
+
         pilas = self.juego.tablero.pilas
         for indice, pila in enumerate(pilas):
-            fila = indice // ANCHO_FILA
-            columna = indice % ANCHO_FILA
+            posicion = indice + 1  # +1: la celda 0 ya la ocupa el mazo
+            fila = posicion // columnas
+            columna = posicion % columnas
 
-            imagen = cargar_imagen_carta(pila.tope())
+            imagen = cargar_imagen_carta(pila.tope(), self.ancho_carta, self.alto_carta)
             self._imagenes_actuales.append(imagen)  # evita que se pierda la referencia
 
             boton = tk.Button(
@@ -425,20 +525,20 @@ class VentanaJuego:
         # columna se queda sin nada adentro y Tkinter la colapsa a ancho 0,
         # lo que corre a las demás pilas visualmente ANTES de soltar nada.
         # Fijando un tamaño mínimo por columna/fila, el hueco se mantiene
-        # quieto mientras dura el arrastre.
-        if self._botones_pilas:
-            self.marco_tablero.update_idletasks()
-            ancho_celda = max(b.winfo_reqwidth() for b in self._botones_pilas) + 8
-            alto_celda = max(b.winfo_reqheight() for b in self._botones_pilas) + 8
-            filas_totales = (len(pilas) - 1) // ANCHO_FILA + 1
-            for columna_config in range(ANCHO_FILA):
-                self.marco_tablero.grid_columnconfigure(columna_config, minsize=ancho_celda)
-            for fila_config in range(filas_totales):
-                self.marco_tablero.grid_rowconfigure(fila_config, minsize=alto_celda)
+        # quieto mientras dura el arrastre. Se calcula sobre TODOS los
+        # botones (mazo incluido), para que la celda del mazo no achique
+        # su fila/columna cuando queda como la única celda ocupada de esa fila.
+        todos_los_botones = [self.boton_mazo] + self._botones_pilas
+        self.marco_tablero.update_idletasks()
+        ancho_celda = max(b.winfo_reqwidth() for b in todos_los_botones) + 8
+        alto_celda = max(b.winfo_reqheight() for b in todos_los_botones) + 8
+        filas_totales = len(pilas) // columnas + 1
+        for columna_config in range(columnas):
+            self.marco_tablero.grid_columnconfigure(columna_config, minsize=ancho_celda)
+        for fila_config in range(filas_totales):
+            self.marco_tablero.grid_rowconfigure(fila_config, minsize=alto_celda)
 
-        cartas_restantes = self.juego.mazo.quedan_cartas()
         texto_dificultad = "Fácil" if self.dificultad == Dificultad.FACIL else "Difícil"
-        self.etiqueta_mazo_cantidad.config(text=f"x{cartas_restantes}")
         self.etiqueta_info.config(
             text=f"{texto_dificultad} · {len(pilas)} pilas en mesa"
         )
@@ -550,7 +650,6 @@ class VentanaJuego:
         """Descarta la partida actual (se guardó o no) y arranca una nueva desde cero."""
         self.dificultad = elegir_dificultad(self.raiz)
         self.juego = Juego(dificultad=self.dificultad)
-        self.boton_mazo.config(state="normal")
         self.boton_accion.config(text="Rendirse", state="normal")
         self._actualizar_pantalla()
         self._iniciar_reloj()
@@ -564,9 +663,8 @@ class VentanaJuego:
         self.canvas_principal.unbind_all("<MouseWheel>")
         self.canvas_principal.unbind_all("<Button-4>")
         self.canvas_principal.unbind_all("<Button-5>")
-        self.boton_accion.destroy()  # vive afuera de marco_juego: hay que sacarlo a mano
-        self.marco_mazo.destroy()   # ídem: el mazo también vive afuera de marco_juego
-        self.marco_juego.destroy()
+        self.raiz.resizable(True, True)  # por si esta partida dejó la ventana en tamaño fijo
+        self.marco_juego.destroy()  # ahora todo (barra, mazo, tablero) cuelga de acá
         MenuPrincipal(self.raiz)
 
 
@@ -581,6 +679,7 @@ class MenuPrincipal:
         self.raiz = raiz
         self.raiz.title("Solitario de las 50 cartas")
         self.raiz.configure(bg=COLOR_FONDO)
+        self.raiz.resizable(True, True)  # por si la partida anterior dejó la ventana en tamaño fijo
         _maximizar_ventana(self.raiz)
 
         self.marco = tk.Frame(raiz, bg=COLOR_FONDO, padx=50, pady=50)
