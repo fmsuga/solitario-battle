@@ -1,0 +1,21 @@
+# Entorno Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Empaquetado (PyInstaller)
+build/
+dist/
+*.spec
+
+# Datos de partidas jugadas (cada uno tiene el suyo, no se versiona)
+historial.json
+
+# Entornos virtuales, por si usás alguno
+venv/
+.venv/
+env/
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db

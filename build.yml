@@ -1,0 +1,36 @@
+name: Compilar .exe
+
+# Se ejecuta solo: cada vez que subís cambios a la rama principal,
+# o manualmente desde la pestaña "Actions" de GitHub ("Run workflow").
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Descargar el código del repo
+        uses: actions/checkout@v4
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pillow pyinstaller
+
+      - name: Generar el .exe
+        run: |
+          pyinstaller --onefile --windowed --name SolitarioDeLasCincuentaCartas --paths src --add-data "assets/cartas_img;assets/cartas_img" main_grafico.py
+
+      - name: Subir el .exe como resultado descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: SolitarioDeLasCincuentaCartas
+          path: dist/SolitarioDeLasCincuentaCartas.exe
