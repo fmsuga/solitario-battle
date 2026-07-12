@@ -29,6 +29,7 @@ COLOR_FONDO = "#0b6623"     # verde "paño de mesa"
 COLOR_PILA = "#fdfaf5"
 COLOR_TEXTO_PILA = "#222222"
 COLOR_ACENTO = "#c62828"
+COLOR_ACENTO_HOVER = "#e53935"  # un rojo más vivo, para el efecto hover del botón de acción
 COLOR_TEXTO_CLARO = "#ffe082"
 COLOR_TEXTO_MUTED = "#bcd9c0"   # info secundaria (dificultad, mazo, pilas): visible pero discreta
 COLOR_EXITO = "#aed581"
@@ -202,16 +203,24 @@ class VentanaJuego:
         self.marco_tablero.pack(padx=12, pady=6)
 
         # --- Elementos flotantes: SIEMPRE al final, para que queden arriba ---
-        # Rendirse, esquina superior derecha.
+        # Rendirse: esquina superior derecha, pero con margen relativo (no un
+        # offset fijo en pixeles) para que en pantallas grandes no quede tan
+        # perdido/desconectado del resto. Estilo plano + hover, más prolijo
+        # que el botón "de sistema" que tenía antes.
         self.boton_accion = tk.Button(
             self.raiz, text="Rendirse", command=self._on_accion_principal,
             bg=COLOR_ACENTO, fg="white", font=("Arial", 11, "bold"),
+            relief="flat", bd=0, padx=18, pady=9, cursor="hand2",
+            activebackground=COLOR_ACENTO_HOVER, activeforeground="white",
         )
-        self.boton_accion.place(relx=1.0, x=-14, y=14, anchor="ne")
+        self.boton_accion.bind("<Enter>", lambda e: self.boton_accion.config(bg=COLOR_ACENTO_HOVER))
+        self.boton_accion.bind("<Leave>", lambda e: self.boton_accion.config(bg=COLOR_ACENTO))
+        self.boton_accion.place(relx=0.97, rely=0.035, anchor="ne")
 
-        # El mazo: abajo a la izquierda, con margen (no pegado al borde).
+        # El mazo: más centrado (no tan pegado al borde izquierdo) y más
+        # arriba (no tan al ras del borde inferior).
         self.marco_mazo = tk.Frame(self.raiz, bg=COLOR_FONDO)
-        self.marco_mazo.place(relx=0.0, rely=1.0, x=70, y=-60, anchor="sw")
+        self.marco_mazo.place(relx=0.30, rely=0.86, anchor="center")
 
         self._imagen_dorso = cargar_imagen_dorso(ANCHO_MAZO, ALTO_MAZO)  # referencia viva
         self.boton_mazo = tk.Button(

@@ -12,7 +12,6 @@ imágenes a un tamaño arbitrario:
 from pathlib import Path
 
 from cartas import Carta
-from recursos import ruta_base_recursos
 
 try:
     from PIL import Image, ImageTk
@@ -20,10 +19,10 @@ try:
 except ImportError:
     PILLOW_DISPONIBLE = False
 
-CARPETA_IMAGENES = ruta_base_recursos() / "assets" / "cartas_img"
+CARPETA_IMAGENES = Path(__file__).parent.parent / "assets" / "cartas_img"
 
-ANCHO_CARTA = 92
-ALTO_CARTA = 145
+ANCHO_CARTA = 112
+ALTO_CARTA = 176
 
 
 def ruta_imagen(carta: Carta) -> Path:
