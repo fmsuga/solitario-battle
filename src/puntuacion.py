@@ -6,9 +6,10 @@ diccionarios). No hace falta base de datos para esto.
 """
 
 import json
-from pathlib import Path
 
-ARCHIVO_HISTORIAL = Path("historial.json")
+from recursos import ruta_base_datos_usuario
+
+ARCHIVO_HISTORIAL = ruta_base_datos_usuario() / "historial.json"
 
 
 def interpretar_resultado(pilas_finales: int) -> str:

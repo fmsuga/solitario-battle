@@ -27,7 +27,7 @@ jobs:
 
       - name: Generar el .exe
         run: |
-          pyinstaller --onefile --windowed --name SolitarioDeLasCincuentaCartas --paths src --add-data "assets/cartas_img;assets/cartas_img" main_grafico.py
+          pyinstaller --onefile --windowed --clean --noupx --name SolitarioDeLasCincuentaCartas --paths src --add-data "assets/cartas_img;assets/cartas_img" main_grafico.py
 
       - name: Subir el .exe como resultado descargable
         uses: actions/upload-artifact@v4

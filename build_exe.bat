@@ -1,23 +1,55 @@
 @echo off
-REM build_exe.bat
-REM ---------------
-REM Genera el .exe con un solo doble-click. Corré esto parado en
-REM Windows, adentro de la carpeta solitario_50.
+setlocal
 
-echo Instalando dependencias...
-python -m pip install --upgrade pip
-python -m pip install pillow pyinstaller
+REM ==========================================
+REM Build del ejecutable - Solitario de las 50
+REM ==========================================
 
 echo.
-echo Limpiando compilaciones anteriores...
+echo [1/3] Actualizando e instalando dependencias...
+python -m pip install --upgrade pip
+if errorlevel 1 goto :error
+
+python -m pip install pillow pyinstaller
+if errorlevel 1 goto :error
+
+echo.
+echo [2/3] Limpiando compilaciones anteriores...
 rmdir /s /q build 2>nul
 rmdir /s /q dist 2>nul
-del SolitarioDeLasCincuentaCartas.spec 2>nul
+del /q SolitarioDeLasCincuentaCartas.spec 2>nul
 
 echo.
-echo Generando el ejecutable...
-pyinstaller --onefile --windowed --name SolitarioDeLasCincuentaCartas --paths src --add-data "assets/cartas_img;assets/cartas_img" main_grafico.py
+echo [3/3] Generando ejecutable...
+python -m PyInstaller ^
+    --onefile ^
+    --windowed ^
+    --clean ^
+    --noupx ^
+    --name SolitarioDeLasCincuentaCartas ^
+    --paths src ^
+    --add-data "assets/cartas_img;assets/cartas_img" ^
+    main_grafico.py
+
+if errorlevel 1 goto :error
 
 echo.
-echo Listo. El ejecutable esta en dist\SolitarioDeLasCincuentaCartas.exe
+echo ==========================================
+echo Compilacion finalizada correctamente.
+echo.
+echo El ejecutable se encuentra en:
+echo     dist\SolitarioDeLasCincuentaCartas.exe
+echo ==========================================
+echo.
 pause
+exit /b 0
+
+:error
+echo.
+echo ==========================================
+echo ERROR: La compilacion fallo.
+echo Revisa los mensajes mostrados arriba.
+echo ==========================================
+echo.
+pause
+exit /b 1
