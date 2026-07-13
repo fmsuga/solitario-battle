@@ -1,644 +1,353 @@
-"""
-interfaz_grafica.py
---------------------
-Interfaz gráfica con Tkinter. Como juego.py, tablero.py, cartas.py y
-reglas.py no saben nada de CÓMO se muestra el juego, este archivo es
-lo único nuevo: reutiliza toda la lógica ya armada, solo cambia la
-presentación e interacción (nada de esto toca la lógica del juego).
+"""Interfaz gráfica de Solitario Battle.
 
-Interacción: hacés click en la pila que vos creas que es el lado
-IZQUIERDO de una jugada válida (se compara automáticamente contra la
-pila que está 2 lugares después, salteando la del medio). Si tenés
-razón, se fusiona. Si no, te avisa y podés seguir mirando.
+Este módulo sólo presenta la partida: no modifica reglas ni estado de las
+clases de dominio. Incluye menú, tablero, arrastrar/soltar y pantallas de
+resultado usando una única identidad visual.
 """
 
 import math
 import tkinter as tk
 from tkinter import messagebox
 
+from cartas import CANTIDAD_CARTAS_EN_MAZO, Dificultad
+from imagenes_cartas import ALTO_CARTA, ANCHO_CARTA, cargar_imagen_carta, cargar_imagen_dorso
 from juego import Juego
-from cartas import Dificultad, CANTIDAD_CARTAS_EN_MAZO
 import puntuacion
-from imagenes_cartas import cargar_imagen_carta, cargar_imagen_dorso, ANCHO_CARTA, ALTO_CARTA
 
-COLOR_FONDO = "#0b6623"     # verde "paño de mesa"
-COLOR_PILA = "#fdfaf5"
-COLOR_TEXTO_PILA = "#222222"
-COLOR_ACENTO = "#c62828"
-COLOR_ACENTO_HOVER = "#e53935"  # rojo más vivo, para el efecto hover del botón de acción
-COLOR_TEXTO_CLARO = "#ffe082"
-COLOR_TEXTO_MUTED = "#bcd9c0"   # info secundaria (dificultad, mazo, pilas): visible pero discreta
-COLOR_EXITO = "#aed581"
-COLOR_ERROR = "#ff8a65"
-COLOR_BORDE_PILA = "#054d1a"  # marco fijo y sutil (no cambia con el mouse): le da presencia sin gimmicks
-GROSOR_BORDE_PILA = 2
-DIAMETRO_RELOJ = 62               # chico: no debe competir con el tablero
-COLOR_RELOJ_FONDO = "#1a1a1a"     # cuerpo casi negro, como un cronómetro deportivo real
-COLOR_RELOJ_ANILLO = "#e53935"    # anillo/botón rojo
-COLOR_RELOJ_DIGITOS = "#4dff88"   # dígitos verde LED: alto contraste, se lee de un vistazo
 
-# --- Tamaño de carta y layout del tablero ---
-# El tamaño de carta ya NO es fijo: se recalcula en cada partida según el
-# tamaño de PANTALLA disponible, para que las cartas se vean grandes en
-# monitores grandes y sigan entrando enteras en pantallas chicas.
-# ANCHO_CARTA/ALTO_CARTA (importados de imagenes_cartas) se usan solo como
-# referencia de PROPORCIÓN (alto/ancho de una carta real), no como tamaño final.
+# Paleta: paño de mesa profundo, carbón y tonos cálidos de las cartas.
+COLOR_MESA = "#0B3D2E"
+COLOR_MESA_OSCURO = "#062A20"
+COLOR_PANEL = "#102C25"
+COLOR_PANEL_ELEVADO = "#163A30"
+COLOR_TARJETA = "#F8F3E8"
+COLOR_TARJETA_HOVER = "#EEE5D3"
+COLOR_TEXTO = "#F7F0DD"
+COLOR_MUTED = "#B7CCBF"
+COLOR_TEXTO_OSCURO = "#18332B"
+COLOR_ACENTO = "#D85B45"
+COLOR_ACENTO_HOVER = "#EE725A"
+COLOR_BORDE = "#2C5849"
+COLOR_DORADO = "#E5BE72"
+COLOR_EXITO = "#B9E6A4"
+COLOR_ERROR = "#FFAD91"
+
+FUENTE_TITULO = ("Segoe UI", 30, "bold")
+FUENTE_SUBTITULO = ("Segoe UI", 11)
+FUENTE_TEXTO = ("Segoe UI", 10)
+FUENTE_BOTON = ("Segoe UI", 11, "bold")
+FUENTE_ESTADISTICA = ("Consolas", 20, "bold")
+
 RATIO_CARTA = ALTO_CARTA / ANCHO_CARTA
-
 COLUMNAS_MIN_TABLERO = 6
 COLUMNAS_MAX_TABLERO = 12
-ANCHO_CARTA_MINIMO = 60     # por debajo de esto la carta deja de leerse bien
-ANCHO_CARTA_MAXIMO = 200    # tope para que no queden gigantes en monitores enormes
-GAP_CELDA = 8               # separación total que ya suman los padx/pady de cada .grid
-PROPORCION_AREA_TRABAJO = 0.99  # la ventana de juego usa casi toda la pantalla (el menú es aparte, chico)
-
-# Márgenes conservadores para no chocar con la barra de tareas / el marco
-# de la ventana, que Tkinter no puede medir de antemano.
-MARGEN_PANTALLA_ANCHO = 60
-MARGEN_PANTALLA_ALTO = 90
-MARGEN_INFERIOR_TABLERO = 20
-MARGEN_VENTANA_AJUSTADA = 40  # aire extra alrededor del contenido medido
+ANCHO_CARTA_MINIMO = 62
+ANCHO_CARTA_MAXIMO = 190
+GAP_CELDA = 10
+MARGEN_PANTALLA_X = 70
+MARGEN_PANTALLA_Y = 100
 
 
 def _centrar_ventana(raiz: tk.Tk, ancho: int, alto: int) -> None:
-    """Centra la ventana en la pantalla con el tamaño dado (nunca fullscreen)."""
-    ancho_pantalla = raiz.winfo_screenwidth()
-    alto_pantalla = raiz.winfo_screenheight()
-    x = (ancho_pantalla - ancho) // 2
-    y = (alto_pantalla - alto) // 2
+    """Centra una ventana sin superar el área física disponible."""
+    ancho = min(ancho, raiz.winfo_screenwidth() - 20)
+    alto = min(alto, raiz.winfo_screenheight() - 50)
+    x = (raiz.winfo_screenwidth() - ancho) // 2
+    y = max(0, (raiz.winfo_screenheight() - alto) // 2)
     raiz.geometry(f"{ancho}x{alto}+{x}+{y}")
 
 
 def _calcular_layout_tablero(ancho_disponible: int, alto_disponible: int) -> tuple[int, int, int]:
-    """
-    Busca, entre un rango razonable de columnas, la combinación de
-    columnas + tamaño de carta más grande que entra SIN scroll en el
-    espacio disponible.
-
-    Siempre calcula para la cantidad MÁXIMA posible de celdas (las 48
-    cartas del mazo completo + 1 celda más para el propio mazo), sin
-    importar la dificultad elegida: así, si en la misma ventana se arranca
-    una partida nueva con otra dificultad, el tamaño no cambia y todo
-    sigue entrando.
-
-    Devuelve (columnas, ancho_carta, alto_carta). Si ni el tamaño mínimo
-    legible entra en el espacio disponible, igual devuelve la mejor
-    combinación encontrada — quien llama decide si hace falta recurrir
-    al modo con scroll.
-    """
-    celdas_totales = CANTIDAD_CARTAS_EN_MAZO + 1  # +1: la celda del mazo
-
-    mejor_ancho_carta = 0
-    mejor_columnas = COLUMNAS_MIN_TABLERO
+    """Devuelve la grilla que maximiza las cartas sin cortar la última fila."""
+    total_celdas = CANTIDAD_CARTAS_EN_MAZO + 1  # mazo + todas las pilas posibles
+    mejor = (COLUMNAS_MIN_TABLERO, 1)
     for columnas in range(COLUMNAS_MIN_TABLERO, COLUMNAS_MAX_TABLERO + 1):
-        filas = math.ceil(celdas_totales / columnas)
-        ancho_segun_ancho = ancho_disponible / columnas - GAP_CELDA
-        ancho_segun_alto = (alto_disponible / filas - GAP_CELDA) / RATIO_CARTA
-        ancho_carta = min(ancho_segun_ancho, ancho_segun_alto, ANCHO_CARTA_MAXIMO)
-        if ancho_carta > mejor_ancho_carta:
-            mejor_ancho_carta = ancho_carta
-            mejor_columnas = columnas
+        filas = math.ceil(total_celdas / columnas)
+        por_ancho = (ancho_disponible - (columnas - 1) * GAP_CELDA) / columnas
+        por_alto = ((alto_disponible - (filas - 1) * GAP_CELDA) / filas) / RATIO_CARTA
+        candidato = min(por_ancho, por_alto, ANCHO_CARTA_MAXIMO)
+        if candidato > mejor[1]:
+            mejor = (columnas, candidato)
+    columnas, ancho = mejor
+    ancho = max(1, int(ancho))
+    return columnas, ancho, int(ancho * RATIO_CARTA)
 
-    ancho_carta = max(int(mejor_ancho_carta), 1)
-    alto_carta = int(ancho_carta * RATIO_CARTA)
-    return mejor_columnas, ancho_carta, alto_carta
+
+def crear_boton(
+    padre: tk.Widget, texto: str, comando, *, principal: bool = False,
+    ancho: int | None = None, fuente=None,
+) -> tk.Button:
+    """Crea un botón coherente y añade hover sin repetir configuración."""
+    if principal:
+        normal, hover, fg = COLOR_ACENTO, COLOR_ACENTO_HOVER, "white"
+    else:
+        normal, hover, fg = COLOR_TARJETA, COLOR_TARJETA_HOVER, COLOR_TEXTO_OSCURO
+    boton = tk.Button(
+        padre, text=texto, command=comando, bg=normal, fg=fg,
+        font=fuente or FUENTE_BOTON, relief="flat", bd=0, cursor="hand2",
+        activebackground=hover, activeforeground=fg, padx=18, pady=11,
+        highlightthickness=1, highlightbackground=COLOR_BORDE,
+    )
+    if ancho is not None:
+        boton.configure(width=ancho)
+    boton.bind("<Enter>", lambda _e: boton.configure(bg=hover) if str(boton["state"]) == "normal" else None)
+    boton.bind("<Leave>", lambda _e: boton.configure(bg=normal) if str(boton["state"]) == "normal" else None)
+    return boton
+
+
+def crear_tarjeta(padre: tk.Widget, *, fondo: str = COLOR_PANEL_ELEVADO, borde: str = COLOR_BORDE) -> tk.Frame:
+    return tk.Frame(padre, bg=fondo, highlightthickness=1, highlightbackground=borde)
 
 
 class VentanaJuego:
     def __init__(self, raiz: tk.Tk):
         self.raiz = raiz
-        self.raiz.title("Solitario Hunting")
-        self.raiz.configure(bg=COLOR_FONDO)
-        # OJO: acá todavía no se maximiza ni se fija ningún tamaño de
-        # ventana. Eso se decide en _armar_widgets_fijos, una vez armado
-        # el encabezado, cuando ya sabemos cuánto lugar le queda al
-        # tablero y podemos elegir el modo (ventana fija vs. maximizada).
-
-        self.juego = None       # todavía no se eligió dificultad
-        self.dificultad = None
-        self._imagenes_actuales = []  # referencias vivas, para que Tkinter no las borre de memoria
+        self.raiz.title("Solitario Battle")
+        self.raiz.configure(bg=COLOR_MESA)
+        self.juego: Juego | None = None
+        self.dificultad: Dificultad | None = None
+        self._imagenes_actuales = []
         self._id_reloj = None
-        self._arrastre = None  # info de la pila que se está arrastrando ahora mismo (o None)
-
+        self._arrastre = None
         self._armar_widgets_fijos()
-        # El selector de dificultad va DENTRO del propio tablero (no una
-        # ventana aparte flotando encima): más integrado, y de paso es el
-        # mismo mecanismo que se usa para "limpiar" el tablero al rendirse
-        # (ver _nueva_partida).
         self._mostrar_selector_dificultad(self._comenzar_partida)
 
     def _armar_widgets_fijos(self) -> None:
-        # --- Área con scroll que envuelve TODO el contenido de la partida ---
-        # El scroll solo se ACTIVA (barra + rueda del mouse) si más abajo
-        # resulta que el tablero no entra entero en pantalla. Si entra, la
-        # ventana queda con tamaño fijo y no hace falta scrollear nada.
-        self.marco_juego = tk.Frame(self.raiz, bg=COLOR_FONDO)
+        self.marco_juego = tk.Frame(self.raiz, bg=COLOR_MESA)
         self.marco_juego.pack(fill="both", expand=True)
 
-        self.canvas_principal = tk.Canvas(
-            self.marco_juego, bg=COLOR_FONDO, highlightthickness=0
-        )
-        self._barra_scroll = tk.Scrollbar(
-            self.marco_juego, orient="vertical", command=self.canvas_principal.yview
-        )
+        self.canvas_principal = tk.Canvas(self.marco_juego, bg=COLOR_MESA, highlightthickness=0)
+        self._barra_scroll = tk.Scrollbar(self.marco_juego, orient="vertical", command=self.canvas_principal.yview)
         self.canvas_principal.configure(yscrollcommand=self._barra_scroll.set)
         self.canvas_principal.pack(side="left", fill="both", expand=True)
-
-        self.marco_contenido = tk.Frame(self.canvas_principal, bg=COLOR_FONDO)
-        self._id_ventana_canvas = self.canvas_principal.create_window(
-            (0, 0), window=self.marco_contenido, anchor="nw"
-        )
-
-        self.marco_contenido.bind(
-            "<Configure>",
-            lambda evento: self.canvas_principal.configure(
-                scrollregion=self.canvas_principal.bbox("all")
-            ),
-        )
-        # el ancho del contenido sigue al ancho del canvas (si la ventana se agranda)
-        self.canvas_principal.bind(
-            "<Configure>",
-            lambda evento: self.canvas_principal.itemconfig(
-                self._id_ventana_canvas, width=evento.width
-            ),
-        )
-
-        # --- A partir de acá, todo se cuelga de self.marco_contenido, no de self.raiz ---
-        # El reloj: un cronómetro chico centrado arriba. Los movimientos van
-        # debajo, en texto claro (ni protagonista ni invisible).
-        marco_reloj = tk.Frame(self.marco_contenido, bg=COLOR_FONDO)
-        marco_reloj.pack(pady=(16, 2))
-
-        self.canvas_reloj = tk.Canvas(
-            marco_reloj, width=DIAMETRO_RELOJ + 16, height=DIAMETRO_RELOJ + 22,
-            bg=COLOR_FONDO, highlightthickness=0,
-        )
-        self.canvas_reloj.pack()
-        self._dibujar_reloj_circular()
-
-        self.etiqueta_movimientos = tk.Label(
-            marco_reloj, text="0 movimientos", font=("Arial", 12),
-            bg=COLOR_FONDO, fg=COLOR_TEXTO_CLARO,
-        )
-        self.etiqueta_movimientos.pack(pady=(4, 0))
-
-        # Barra de controles: info de la partida a la izquierda, y el botón
-        # de Rendirse/Terminar a la derecha. Antes este botón vivía flotando
-        # con .place() sobre una esquina de toda la PANTALLA (lejos del
-        # tablero en monitores grandes); ahora es una fila más, junto a la
-        # info que describe, como el resto de los controles de la partida.
-        barra_superior = tk.Frame(self.marco_contenido, bg=COLOR_FONDO)
-        barra_superior.pack(fill="x", padx=24, pady=(4, 2))
-
-        self.etiqueta_info = tk.Label(
-            barra_superior, text="", font=("Arial", 9),
-            bg=COLOR_FONDO, fg=COLOR_TEXTO_MUTED,
-        )
-        self.etiqueta_info.pack(side="left")
-
-        self.boton_accion = tk.Button(
-            barra_superior, text="Rendirse", command=self._on_accion_principal,
-            bg=COLOR_ACENTO, fg="white", font=("Arial", 11, "bold"),
-            relief="flat", bd=0, padx=18, pady=9, cursor="hand2",
-            activebackground=COLOR_ACENTO_HOVER, activeforeground="white",
-        )
-        self.boton_accion.bind("<Enter>", lambda e: self.boton_accion.config(bg=COLOR_ACENTO_HOVER))
-        self.boton_accion.bind("<Leave>", lambda e: self.boton_accion.config(bg=COLOR_ACENTO))
-        self.boton_accion.pack(side="right")
-
-        self.etiqueta_mensaje = tk.Label(
-            self.marco_contenido,
-            text="Elegí la dificultad para arrancar.",
-            font=("Arial", 13, "bold"), bg=COLOR_FONDO, fg=COLOR_TEXTO_CLARO,
-            wraplength=560, justify="center",
-        )
-        self.etiqueta_mensaje.pack(pady=(4, 12))
-
-        self.marco_tablero = tk.Frame(self.marco_contenido, bg=COLOR_FONDO)
-        self.marco_tablero.pack(padx=12, pady=6)
-
-        # --- Con el encabezado ya armado, medimos cuánto ocupa, y con eso
-        # calculamos cuánto lugar le queda al tablero. La ventana de juego
-        # usa casi toda la pantalla (PROPORCION_AREA_TRABAJO), así las
-        # cartas se ven grandes; el margen que queda es solo para no
-        # chocar con la barra de tareas / el marco de la ventana. El menú
-        # principal es aparte y se mantiene chico (ver MenuPrincipal).
-        self.raiz.update_idletasks()
-        alto_encabezado = self.marco_contenido.winfo_reqheight()
-
-        ancho_pantalla = self.raiz.winfo_screenwidth()
-        alto_pantalla = self.raiz.winfo_screenheight()
-        ancho_area_trabajo = int(ancho_pantalla * PROPORCION_AREA_TRABAJO)
-        alto_area_trabajo = int(alto_pantalla * PROPORCION_AREA_TRABAJO)
-
-        ancho_disponible = ancho_area_trabajo - MARGEN_PANTALLA_ANCHO
-        alto_disponible_tablero = (
-            alto_area_trabajo - MARGEN_PANTALLA_ALTO - alto_encabezado - MARGEN_INFERIOR_TABLERO
-        )
-
-        columnas, ancho_carta, alto_carta = _calcular_layout_tablero(
-            ancho_disponible, alto_disponible_tablero
-        )
-        self.columnas_tablero = columnas
-        self.ancho_carta = max(ancho_carta, ANCHO_CARTA_MINIMO)
-        self.alto_carta = int(self.ancho_carta * RATIO_CARTA)
-
-        # El scroll queda SIEMPRE disponible como red de seguridad (antes
-        # solo se activaba si el cálculo no daba abasto, y en ese caso la
-        # ventana además se maximizaba). Así, pase lo que pase —pantalla
-        # chica, fuente del sistema grande, lo que sea— el tablero entero
-        # siempre se puede ver, sin necesidad de recurrir a fullscreen.
         self._barra_scroll.pack(side="right", fill="y")
+
+        self.marco_contenido = tk.Frame(self.canvas_principal, bg=COLOR_MESA)
+        self._id_ventana_canvas = self.canvas_principal.create_window((0, 0), window=self.marco_contenido, anchor="nw")
+        self.marco_contenido.bind("<Configure>", self._actualizar_scrollregion)
+        self.canvas_principal.bind("<Configure>", self._ajustar_ancho_contenido)
         self.canvas_principal.bind_all("<MouseWheel>", self._on_rueda_mouse)
-        self.canvas_principal.bind_all("<Button-4>", lambda e: self.canvas_principal.yview_scroll(-1, "units"))
-        self.canvas_principal.bind_all("<Button-5>", lambda e: self.canvas_principal.yview_scroll(1, "units"))
+        self.canvas_principal.bind_all("<Button-4>", lambda _e: self.canvas_principal.yview_scroll(-1, "units"))
+        self.canvas_principal.bind_all("<Button-5>", lambda _e: self.canvas_principal.yview_scroll(1, "units"))
 
-        # El tamaño final se calcula de forma ANALÍTICA (columnas x filas x
-        # tamaño de carta), sin necesidad de armar el tablero real: en este
-        # punto todavía no se eligió dificultad, así que marco_tablero está
-        # vacío (ahí va a ir el selector). Como ya sabemos cuántas
-        # columnas/filas puede llegar a tener el tablero completo (ver
-        # _calcular_layout_tablero), alcanza con la cuenta para fijar la
-        # ventana en su tamaño definitivo — siempre topado al área de
-        # trabajo (80% de pantalla), nunca más grande que eso.
-        celdas_totales = CANTIDAD_CARTAS_EN_MAZO + 1
-        filas_totales = math.ceil(celdas_totales / columnas)
-        ancho_tablero = columnas * (self.ancho_carta + GAP_CELDA)
-        alto_tablero = filas_totales * (self.alto_carta + GAP_CELDA)
+        self._crear_barra_superior()
+        self.etiqueta_mensaje = tk.Label(
+            self.marco_contenido, text="Elegí la dificultad para arrancar.", font=FUENTE_TEXTO,
+            bg=COLOR_MESA, fg=COLOR_MUTED, wraplength=760, justify="center",
+        )
+        self.etiqueta_mensaje.pack(pady=(14, 8))
+        self.marco_tablero = tk.Frame(self.marco_contenido, bg=COLOR_MESA)
+        self.marco_tablero.pack(padx=24, pady=(0, 28))
 
-        ancho_ventana = min(
-            max(ancho_tablero, self.marco_contenido.winfo_reqwidth()) + MARGEN_VENTANA_AJUSTADA,
-            ancho_area_trabajo,
+        # Header ya construido: el cálculo usa el alto real restante, no una estimación.
+        self.raiz.update_idletasks()
+        ancho_area = self.raiz.winfo_screenwidth() - MARGEN_PANTALLA_X
+        alto_area = self.raiz.winfo_screenheight() - MARGEN_PANTALLA_Y
+        alto_header = self.marco_contenido.winfo_reqheight()
+        self.columnas_tablero, ancho, self.alto_carta = _calcular_layout_tablero(
+            ancho_area - 40, max(140, alto_area - alto_header - 24)
         )
-        alto_ventana = min(
-            alto_encabezado + alto_tablero + MARGEN_VENTANA_AJUSTADA, alto_area_trabajo
-        )
-        _centrar_ventana(self.raiz, ancho_ventana, alto_ventana)
-        self.raiz.resizable(True, True)  # el usuario puede agrandarla más si quiere; el scroll cubre el resto
+        self.ancho_carta = max(ANCHO_CARTA_MINIMO, ancho)
+        self.alto_carta = int(self.ancho_carta * RATIO_CARTA)
+        filas = math.ceil((CANTIDAD_CARTAS_EN_MAZO + 1) / self.columnas_tablero)
+        ancho_tablero = self.columnas_tablero * self.ancho_carta + (self.columnas_tablero - 1) * GAP_CELDA
+        alto_tablero = filas * self.alto_carta + (filas - 1) * GAP_CELDA
+        _centrar_ventana(self.raiz, max(780, ancho_tablero + 70), alto_header + alto_tablero + 55)
+        self.raiz.minsize(720, 600)
 
-    def _dibujar_reloj_circular(self) -> None:
-        """
-        Dibuja UNA vez el cronómetro; el texto adentro se actualiza aparte.
-        Estilo cronómetro deportivo: cuerpo oscuro, anillo rojo, un botón
-        arriba (como el de un cronómetro de mano) y marcas a los 4 puntos
-        cardinales. Los dígitos van en verde tipo LED, que es lo que más
-        contraste y "lectura rápida" da sobre un fondo oscuro.
-        """
-        cx = (DIAMETRO_RELOJ + 16) / 2
-        cy = (DIAMETRO_RELOJ + 22) / 2 + 6
-        radio = DIAMETRO_RELOJ / 2
+    def _crear_barra_superior(self) -> None:
+        barra = crear_tarjeta(self.marco_contenido, fondo=COLOR_PANEL, borde=COLOR_BORDE)
+        barra.pack(fill="x", padx=24, pady=(20, 0))
+        identidad = tk.Frame(barra, bg=COLOR_PANEL)
+        identidad.pack(side="left", padx=18, pady=13)
+        tk.Label(identidad, text="SOLITARIO BATTLE", font=("Segoe UI", 12, "bold"), bg=COLOR_PANEL, fg=COLOR_DORADO).pack(anchor="w")
+        self.etiqueta_info = tk.Label(identidad, text="Elegí una dificultad", font=("Segoe UI", 9), bg=COLOR_PANEL, fg=COLOR_MUTED)
+        self.etiqueta_info.pack(anchor="w", pady=(2, 0))
 
-        # botoncito arriba, como el de un cronómetro real
-        self.canvas_reloj.create_rectangle(
-            cx - 6, cy - radio - 9, cx + 6, cy - radio + 2,
-            fill=COLOR_RELOJ_ANILLO, outline="",
-        )
-        # cuerpo del cronómetro
-        self.canvas_reloj.create_oval(
-            cx - radio, cy - radio, cx + radio, cy + radio,
-            fill=COLOR_RELOJ_FONDO, outline=COLOR_RELOJ_ANILLO, width=4,
-        )
-        # 4 marcas cardinales, como un dial
-        for angulo in (0, 90, 180, 270):
-            rad = math.radians(angulo)
-            x1, y1 = cx + math.sin(rad) * (radio - 10), cy - math.cos(rad) * (radio - 10)
-            x2, y2 = cx + math.sin(rad) * (radio - 4), cy - math.cos(rad) * (radio - 4)
-            self.canvas_reloj.create_line(x1, y1, x2, y2, fill=COLOR_RELOJ_ANILLO, width=2)
+        # El bloque de estadísticas vive en la columna central, independiente
+        # de los controles laterales: el cronómetro queda realmente centrado.
+        estadisticas = tk.Frame(barra, bg=COLOR_PANEL)
+        estadisticas.place(relx=0.5, rely=0.5, anchor="center")
+        self._crear_estadistica(estadisticas, "MOVIMIENTOS", "0", "movimientos")
+        self._crear_estadistica(estadisticas, "TIEMPO", "00:00", "tiempo")
 
-        self._id_texto_tiempo = self.canvas_reloj.create_text(
-            cx, cy, text="00:00", font=("Courier New", 13, "bold"), fill=COLOR_RELOJ_DIGITOS,
-        )
+        acciones = tk.Frame(barra, bg=COLOR_PANEL)
+        acciones.pack(side="right", padx=14, pady=10)
+        self.boton_accion = crear_boton(acciones, "Rendirse", self._on_accion_principal, principal=True, fuente=("Segoe UI", 9, "bold"))
+        self.boton_accion.pack(side="right")
+        crear_boton(acciones, "Menú principal", self._confirmar_volver_menu, fuente=("Segoe UI", 9, "bold")).pack(side="right", padx=(0, 8))
+
+    def _crear_estadistica(self, padre: tk.Widget, titulo: str, valor: str, atributo: str) -> None:
+        tarjeta = tk.Frame(padre, bg=COLOR_PANEL_ELEVADO, padx=12, pady=5)
+        tarjeta.pack(side="right", padx=(0, 9))
+        tk.Label(tarjeta, text=titulo, font=("Segoe UI", 7, "bold"), bg=COLOR_PANEL_ELEVADO, fg=COLOR_MUTED).pack(anchor="e")
+        etiqueta = tk.Label(tarjeta, text=valor, font=FUENTE_ESTADISTICA, bg=COLOR_PANEL_ELEVADO, fg=COLOR_TEXTO)
+        etiqueta.pack(anchor="e")
+        setattr(self, f"etiqueta_{atributo}", etiqueta)
+
+    def _actualizar_scrollregion(self, _evento=None) -> None:
+        self.canvas_principal.configure(scrollregion=self.canvas_principal.bbox("all"))
+
+    def _ajustar_ancho_contenido(self, evento: tk.Event) -> None:
+        self.canvas_principal.itemconfigure(self._id_ventana_canvas, width=evento.width)
 
     def _actualizar_reloj_visual(self, movimientos: int, segundos: int) -> None:
-        self.canvas_reloj.itemconfig(
-            self._id_texto_tiempo, text=puntuacion.formatear_duracion(segundos)
-        )
-        plural = "movimiento" if movimientos == 1 else "movimientos"
-        self.etiqueta_movimientos.config(text=f"{movimientos} {plural}")
+        self.etiqueta_tiempo.config(text=puntuacion.formatear_duracion(segundos))
+        self.etiqueta_movimientos.config(text=str(movimientos))
 
     def _mostrar_mensaje(self, texto: str, tipo: str = "info") -> None:
-        """Actualiza el mensaje post-jugada. Color según el tipo, sin animación."""
-        colores = {"exito": COLOR_EXITO, "error": COLOR_ERROR, "info": COLOR_TEXTO_CLARO}
-        self.etiqueta_mensaje.config(text=texto, fg=colores.get(tipo, COLOR_TEXTO_CLARO))
+        colores = {"exito": COLOR_EXITO, "error": COLOR_ERROR, "info": COLOR_MUTED}
+        self.etiqueta_mensaje.config(text=texto, fg=colores.get(tipo, COLOR_MUTED))
 
-    def _on_rueda_mouse(self, evento) -> None:
-        self.canvas_principal.yview_scroll(int(-1 * (evento.delta / 120)), "units")
+    def _on_rueda_mouse(self, evento: tk.Event) -> None:
+        if getattr(event, "delta", 0):
+            self.canvas_principal.yview_scroll(int(-evento.delta / 120), "units")
 
     def _iniciar_reloj(self) -> None:
-        """Arranca (o reinicia) el reloj que refresca movimientos y tiempo cada segundo."""
         if self._id_reloj is not None:
             self.raiz.after_cancel(self._id_reloj)
         self._actualizar_reloj()
 
     def _actualizar_reloj(self) -> None:
-        if self.juego.esta_terminada():
+        if self.juego is None or self.juego.esta_terminada():
             self._id_reloj = None
-            return  # no se reprograma más: se frenó el reloj
-        movimientos = self.juego.cantidad_jugadas_realizadas
-        segundos = self.juego.duracion_segundos()
-        self._actualizar_reloj_visual(movimientos, segundos)
+            return
+        self._actualizar_reloj_visual(self.juego.cantidad_jugadas_realizadas, self.juego.duracion_segundos())
         self._id_reloj = self.raiz.after(1000, self._actualizar_reloj)
 
     def _on_repartir(self) -> None:
-        if self.juego.esta_terminada() or not self.juego.quedan_cartas_en_mano():
+        if self.juego is None or self.juego.esta_terminada() or not self.juego.quedan_cartas_en_mano():
             return
         self.juego.repartir_carta()
         self._mostrar_mensaje("Carta repartida. ¿Ves alguna jugada?", "info")
         self._actualizar_pantalla()
 
     def _on_accion_principal(self) -> None:
-        """
-        Un solo botón con dos comportamientos, según el momento:
-        - Si todavía quedan cartas en el mazo: es un "Rendirse" (pide
-          confirmación, porque descarta la partida en curso).
-        - Si ya no quedan cartas: es "Terminar partida" (cierre normal,
-          sin confirmación, porque ya jugaste todo lo que había).
-        """
-        if self.juego.esta_terminada():
+        if self.juego is None or self.juego.esta_terminada():
             return
-
         if self.juego.quedan_cartas_en_mano():
-            confirmar = messagebox.askyesno(
-                "Rendirse",
-                "¿Seguro que querés abandonar esta partida y empezar una nueva?\n"
-                "No se va a guardar ningún puntaje de esta partida.",
-            )
-            if confirmar:
+            if messagebox.askyesno("Rendirse", "¿Seguro que querés abandonar esta partida y empezar una nueva?\nNo se guardará su puntaje."):
                 self._nueva_partida()
         else:
             self.juego.finalizar()
             self._terminar_partida()
 
+    def _confirmar_volver_menu(self) -> None:
+        """Permite abandonar la partida en curso sin ocultar la salida al menú."""
+        if self.juego is None or self.juego.esta_terminada() or messagebox.askyesno(
+            "Volver al menú", "¿Querés volver al menú principal?\nLa partida actual no se guardará."
+        ):
+            self._volver_al_menu()
+
+    # La interacción conserva exactamente el contrato original: se intenta la jugada desde la pila izquierda.
     def _iniciar_arrastre(self, evento: tk.Event, indice: int) -> None:
-        """Se dispara al apretar el botón del mouse sobre una pila: la "levanta"."""
-        if self.juego.esta_terminada():
+        if self.juego is None or self.juego.esta_terminada():
             return
         boton = self._botones_pilas[indice]
-        self._arrastre = {
-            "indice_origen": indice,
-            "boton": boton,
-            "x_inicial": boton.winfo_x(),
-            "y_inicial": boton.winfo_y(),
-            "x_mouse_inicial": evento.x_root,
-            "y_mouse_inicial": evento.y_root,
-        }
+        self._arrastre = {"indice_origen": indice, "boton": boton, "x_inicial": boton.winfo_x(), "y_inicial": boton.winfo_y(), "x_mouse_inicial": evento.x_root, "y_mouse_inicial": evento.y_root}
         boton.grid_forget()
         boton.place(x=self._arrastre["x_inicial"], y=self._arrastre["y_inicial"])
-        boton.lift()  # que se vea por encima de las demás pilas mientras se arrastra
+        boton.lift()
 
     def _arrastrando(self, evento: tk.Event) -> None:
-        """Se dispara en cada movimiento del mouse mientras está apretado."""
         if self._arrastre is None:
             return
-        dx = evento.x_root - self._arrastre["x_mouse_inicial"]
-        dy = evento.y_root - self._arrastre["y_mouse_inicial"]
         self._arrastre["boton"].place(
-            x=self._arrastre["x_inicial"] + dx,
-            y=self._arrastre["y_inicial"] + dy,
+            x=self._arrastre["x_inicial"] + evento.x_root - self._arrastre["x_mouse_inicial"],
+            y=self._arrastre["y_inicial"] + evento.y_root - self._arrastre["y_mouse_inicial"],
         )
 
-    def _soltar_arrastre(self, evento: tk.Event) -> None:
-        """
-        Se dispara al soltar el botón del mouse. La única jugada válida es
-        soltar la pila arrastrada ENCIMA de la que está inmediatamente a su
-        izquierda (así se simula "empujar" una pila sobre la anterior).
-        Si no cayó ahí, no pasa nada: _actualizar_pantalla() la vuelve a
-        su lugar original en la grilla.
-        """
+    def _soltar_arrastre(self, _evento: tk.Event) -> None:
         if self._arrastre is None:
             return
         indice_origen = self._arrastre["indice_origen"]
-        boton_arrastrado = self._arrastre["boton"]
-        indice_destino = indice_origen - 1
+        boton = self._arrastre["boton"]
         self._arrastre = None
-
-        if indice_destino >= 0 and self._soltada_sobre_pila(boton_arrastrado, indice_destino):
-            if self.juego.intentar_jugada(indice_destino):
-                self._mostrar_mensaje("¡Jugada válida! Buen ojo. 👀", "exito")
+        destino = indice_origen - 1
+        if destino >= 0 and self._soltada_sobre_pila(boton, destino):
+            if self.juego.intentar_jugada(destino):
+                self._mostrar_mensaje("¡Jugada válida! Buen ojo.", "exito")
             else:
                 self._mostrar_mensaje("Ahí no hay ninguna coincidencia. Fijate de nuevo.", "error")
         self._actualizar_pantalla()
 
-    def _soltada_sobre_pila(self, boton_arrastrado: tk.Widget, indice_objetivo: int) -> bool:
-        """True si el CENTRO del botón arrastrado terminó dentro del área de la pila objetivo."""
+    def _soltada_sobre_pila(self, boton: tk.Widget, indice_objetivo: int) -> bool:
         if indice_objetivo >= len(self._botones_pilas):
             return False
         objetivo = self._botones_pilas[indice_objetivo]
-
-        centro_x = boton_arrastrado.winfo_x() + boton_arrastrado.winfo_width() / 2
-        centro_y = boton_arrastrado.winfo_y() + boton_arrastrado.winfo_height() / 2
-
-        ox, oy = objetivo.winfo_x(), objetivo.winfo_y()
-        ancho, alto = objetivo.winfo_width(), objetivo.winfo_height()
-
-        return ox <= centro_x <= ox + ancho and oy <= centro_y <= oy + alto
+        centro_x = boton.winfo_x() + boton.winfo_width() / 2
+        centro_y = boton.winfo_y() + boton.winfo_height() / 2
+        return objetivo.winfo_x() <= centro_x <= objetivo.winfo_x() + objetivo.winfo_width() and objetivo.winfo_y() <= centro_y <= objetivo.winfo_y() + objetivo.winfo_height()
 
     def _actualizar_pantalla(self) -> None:
         for widget in self.marco_tablero.winfo_children():
             widget.destroy()
-        self._imagenes_actuales = []  # se descartan las anteriores, se cargan las nuevas
-        self._botones_pilas = []      # referencias vivas, necesarias para el arrastre
-
-        columnas = self.columnas_tablero
+        self._imagenes_actuales = []
+        self._botones_pilas = []
         cartas_restantes = self.juego.mazo.quedan_cartas()
-
-        # El mazo ocupa la celda 0: es una pila más de la grilla (mismo
-        # tamaño, mismo estilo), no un elemento aparte. El contador de
-        # cartas restantes va grabado en la propia imagen del dorso (ver
-        # imagenes_cartas._dibujar_contador), no como texto del botón.
         self._imagen_dorso = cargar_imagen_dorso(self.ancho_carta, self.alto_carta, cantidad=cartas_restantes)
-        self.boton_mazo = tk.Button(
-            self.marco_tablero,
-            image=self._imagen_dorso,
-            bg=COLOR_PILA,
-            cursor="hand2",
-            relief="flat",
-            bd=0,
-            highlightthickness=GROSOR_BORDE_PILA,
-            highlightbackground=COLOR_BORDE_PILA,
-            highlightcolor=COLOR_BORDE_PILA,
-            command=self._on_repartir,
-        )
-        self.boton_mazo.grid(row=0, column=0, padx=4, pady=4)
+        self.boton_mazo = self._crear_boton_carta(self._imagen_dorso, self._on_repartir)
+        self.boton_mazo.grid(row=0, column=0)
 
         pilas = self.juego.tablero.pilas
         for indice, pila in enumerate(pilas):
-            posicion = indice + 1  # +1: la celda 0 ya la ocupa el mazo
-            fila = posicion // columnas
-            columna = posicion % columnas
-
+            posicion = indice + 1
             imagen = cargar_imagen_carta(pila.tope(), self.ancho_carta, self.alto_carta, cantidad=len(pila))
-            self._imagenes_actuales.append(imagen)  # evita que se pierda la referencia
-
-            boton = tk.Button(
-                self.marco_tablero,
-                image=imagen,
-                bg=COLOR_PILA,
-                cursor="hand2",  # manito: más amigable que la cruz de flechas de "fleur"
-                relief="flat",
-                bd=0,
-                highlightthickness=GROSOR_BORDE_PILA,
-                highlightbackground=COLOR_BORDE_PILA,
-                highlightcolor=COLOR_BORDE_PILA,
-            )
-            boton.grid(row=fila, column=columna, padx=4, pady=4)
+            self._imagenes_actuales.append(imagen)
+            boton = self._crear_boton_carta(imagen)
+            boton.grid(row=posicion // self.columnas_tablero, column=posicion % self.columnas_tablero)
             boton.bind("<ButtonPress-1>", lambda e, i=indice: self._iniciar_arrastre(e, i))
             boton.bind("<B1-Motion>", self._arrastrando)
             boton.bind("<ButtonRelease-1>", self._soltar_arrastre)
             self._botones_pilas.append(boton)
 
-        # Sin esto, al "levantar" una pila del grid (ver _iniciar_arrastre) su
-        # columna se queda sin nada adentro y Tkinter la colapsa a ancho 0,
-        # lo que corre a las demás pilas visualmente ANTES de soltar nada.
-        # Fijando un tamaño mínimo por columna/fila, el hueco se mantiene
-        # quieto mientras dura el arrastre. Se calcula sobre TODOS los
-        # botones (mazo incluido), para que la celda del mazo no achique
-        # su fila/columna cuando queda como la única celda ocupada de esa fila.
-        todos_los_botones = [self.boton_mazo] + self._botones_pilas
-        self.marco_tablero.update_idletasks()
-        ancho_celda = max(b.winfo_reqwidth() for b in todos_los_botones) + 8
-        alto_celda = max(b.winfo_reqheight() for b in todos_los_botones) + 8
-        filas_totales = len(pilas) // columnas + 1
-        for columna_config in range(columnas):
-            self.marco_tablero.grid_columnconfigure(columna_config, minsize=ancho_celda)
-        for fila_config in range(filas_totales):
-            self.marco_tablero.grid_rowconfigure(fila_config, minsize=alto_celda)
-
-        texto_dificultad = "Fácil" if self.dificultad == Dificultad.FACIL else "Difícil"
-        self.etiqueta_info.config(
-            text=f"{texto_dificultad} · {len(pilas)} pilas en mesa"
-        )
-
+        for columna in range(self.columnas_tablero):
+            self.marco_tablero.grid_columnconfigure(columna, minsize=self.ancho_carta, pad=GAP_CELDA // 2)
+        filas = math.ceil((len(pilas) + 1) / self.columnas_tablero)
+        for fila in range(filas):
+            self.marco_tablero.grid_rowconfigure(fila, minsize=self.alto_carta, pad=GAP_CELDA // 2)
+        dificultad = "Fácil" if self.dificultad == Dificultad.FACIL else "Difícil"
+        self.etiqueta_info.config(text=f"Partida {dificultad}  ·  {len(pilas)} pilas en mesa")
         if cartas_restantes == 0 and not self.juego.esta_terminada():
             self.boton_mazo.config(state="disabled")
             self.boton_accion.config(text="Terminar partida")
-            self._mostrar_mensaje(
-                "Se acabaron las cartas. ¿Ves alguna jugada más? "
-                "Si no encontrás ninguna, apretá 'Terminar partida'.",
-                "info",
-            )
+            self._mostrar_mensaje("Se acabaron las cartas. Si no ves más jugadas, terminá la partida.")
+
+    def _crear_boton_carta(self, imagen, comando=None) -> tk.Button:
+        return tk.Button(self.marco_tablero, image=imagen, command=comando, bg=COLOR_MESA, activebackground=COLOR_MESA, cursor="hand2", relief="flat", bd=0, highlightthickness=2, highlightbackground=COLOR_BORDE, highlightcolor=COLOR_DORADO)
 
     def _terminar_partida(self) -> None:
         self.boton_mazo.config(state="disabled")
         self.boton_accion.config(state="disabled")
-
         resumen = self.juego.obtener_resumen()
-        interpretacion = puntuacion.interpretar_resultado(resumen["pilas_finales"])
-        duracion_texto = puntuacion.formatear_duracion(resumen["duracion_segundos"])
-        self._abrir_ventana_resumen(resumen, interpretacion, duracion_texto)
+        self._abrir_ventana_resumen(resumen, puntuacion.interpretar_resultado(resumen["pilas_finales"]), puntuacion.formatear_duracion(resumen["duracion_segundos"]))
 
-    def _abrir_ventana_resumen(self, resumen: dict, interpretacion: str, duracion_texto: str) -> None:
-        """
-        El resumen de la partida vive en su propia ventana modal, para que
-        el tablero quede completamente tapado y el cierre de la partida
-        tenga su propio espacio. Reusa el mismo lenguaje visual que ya
-        está instalado en el resto del juego: tarjeta color hueso con
-        borde dorado (mismo que el mazo/pilas al pasar el mouse), el
-        puntaje como una placa oscura estilo cronómetro (mismo que el
-        reloj y el contador de cartas), y botones con el mismo estilo
-        plano + hover que "Rendirse".
-        """
+    def _abrir_ventana_resumen(self, resumen: dict, interpretacion: str, duracion: str) -> None:
         ventana = tk.Toplevel(self.raiz)
         ventana.title("Partida terminada")
-        ventana.configure(bg=COLOR_FONDO)
+        ventana.configure(bg=COLOR_MESA_OSCURO)
         ventana.resizable(False, False)
         ventana.transient(self.raiz)
-        # si la cierran con la X, la salida segura es volver al menú
         ventana.protocol("WM_DELETE_WINDOW", lambda: self._cerrar_resumen_y(ventana, self._volver_al_menu))
+        _centrar_ventana(ventana, 500, 610)
 
-        ancho, alto = 440, 560
-        self.raiz.update_idletasks()
-        x = self.raiz.winfo_rootx() + (self.raiz.winfo_width() - ancho) // 2
-        y = self.raiz.winfo_rooty() + (self.raiz.winfo_height() - alto) // 2
-        ventana.geometry(f"{ancho}x{alto}+{x}+{y}")
-
-        tk.Label(
-            ventana, text="🏁 Partida terminada", font=("Arial", 16, "bold"),
-            bg=COLOR_FONDO, fg=COLOR_TEXTO_CLARO,
-        ).pack(pady=(20, 14))
-
-        # --- Tarjeta central: crema con borde dorado, mismo material que las cartas ---
-        tarjeta = tk.Frame(
-            ventana, bg=COLOR_PILA, highlightbackground=COLOR_TEXTO_CLARO,
-            highlightthickness=3, padx=26, pady=22,
-        )
-        tarjeta.pack(padx=28, fill="both", expand=True)
-
-        # --- Puntaje: placa oscura con dígitos LED, mismo lenguaje que el reloj ---
-        marco_puntaje = tk.Frame(
-            tarjeta, bg=COLOR_RELOJ_FONDO, highlightbackground=COLOR_RELOJ_ANILLO, highlightthickness=3,
-        )
-        marco_puntaje.pack(fill="x", pady=(0, 16))
-        tk.Label(
-            marco_puntaje, text="PUNTAJE", font=("Arial", 9, "bold"),
-            bg=COLOR_RELOJ_FONDO, fg=COLOR_TEXTO_MUTED,
-        ).pack(pady=(10, 0))
-        tk.Label(
-            marco_puntaje, text=str(resumen["puntaje"]), font=("Courier New", 32, "bold"),
-            bg=COLOR_RELOJ_FONDO, fg=COLOR_RELOJ_DIGITOS,
-        ).pack(pady=(0, 10))
-
-        tk.Label(
-            tarjeta, text=interpretacion, font=("Arial", 11, "bold"),
-            bg=COLOR_PILA, fg=COLOR_TEXTO_PILA, wraplength=340, justify="center",
-        ).pack(pady=(0, 6))
-
-        tk.Label(
-            tarjeta,
-            text=(
-                f"{resumen['pilas_finales']} pilas finales   ·   "
-                f"{resumen['movimientos']} movimientos   ·   {duracion_texto}"
-            ),
-            font=("Arial", 9), bg=COLOR_PILA, fg="#6b6b6b",
-        ).pack(pady=(0, 18))
-
-        tk.Label(
-            tarjeta, text="Nombre para guardar el puntaje", font=("Arial", 9, "bold"),
-            bg=COLOR_PILA, fg=COLOR_TEXTO_PILA,
-        ).pack()
-
-        entrada_nombre = tk.Entry(
-            tarjeta, font=("Arial", 11), justify="center", relief="flat",
-            highlightbackground="#c9bfa0", highlightthickness=1,
-        )
-        entrada_nombre.pack(pady=(6, 18), ipady=5, fill="x")
-
-        boton_guardar = tk.Button(
-            tarjeta, text="Guardar puntaje", command=lambda: self._guardar(resumen, entrada_nombre),
-            bg=COLOR_ACENTO, fg="white", font=("Arial", 11, "bold"),
-            relief="flat", bd=0, pady=10, cursor="hand2",
-            activebackground=COLOR_ACENTO_HOVER, activeforeground="white",
-        )
-        boton_guardar.bind("<Enter>", lambda e: boton_guardar.config(bg=COLOR_ACENTO_HOVER))
-        boton_guardar.bind("<Leave>", lambda e: boton_guardar.config(bg=COLOR_ACENTO))
-        boton_guardar.pack(fill="x", pady=(0, 8))
-
-        marco_secundarios = tk.Frame(tarjeta, bg=COLOR_PILA)
-        marco_secundarios.pack(fill="x")
-
-        def _boton_secundario(padre: tk.Widget, texto: str, comando) -> tk.Button:
-            boton = tk.Button(
-                padre, text=texto, command=comando,
-                bg=COLOR_PILA, fg=COLOR_TEXTO_PILA, font=("Arial", 10),
-                relief="flat", bd=0, pady=9, cursor="hand2",
-                highlightbackground="#c9bfa0", highlightthickness=1,
-                activebackground="#e8e0cc",
-            )
-            boton.bind("<Enter>", lambda e: boton.config(bg="#e8e0cc"))
-            boton.bind("<Leave>", lambda e: boton.config(bg=COLOR_PILA))
-            return boton
-
-        _boton_secundario(
-            marco_secundarios, "Nueva partida",
-            lambda: self._cerrar_resumen_y(ventana, self._nueva_partida),
-        ).pack(side="left", expand=True, fill="x", padx=(0, 4))
-
-        _boton_secundario(
-            marco_secundarios, "Volver al menú",
-            lambda: self._cerrar_resumen_y(ventana, self._volver_al_menu),
-        ).pack(side="left", expand=True, fill="x", padx=(4, 0))
-
-        ventana.grab_set()  # modal: bloquea el tablero de atrás hasta que se cierre
+        tk.Label(ventana, text="PARTIDA TERMINADA", font=("Segoe UI", 11, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_DORADO).pack(pady=(28, 4))
+        tk.Label(ventana, text="Tu mesa, tu resultado", font=("Segoe UI", 22, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_TEXTO).pack()
+        tarjeta = crear_tarjeta(ventana, fondo=COLOR_TARJETA, borde=COLOR_DORADO)
+        tarjeta.pack(fill="both", expand=True, padx=34, pady=22)
+        tk.Label(tarjeta, text="PUNTAJE FINAL", font=("Segoe UI", 9, "bold"), bg=COLOR_TARJETA, fg="#60736B").pack(pady=(24, 0))
+        tk.Label(tarjeta, text=str(resumen["puntaje"]), font=("Consolas", 38, "bold"), bg=COLOR_TARJETA, fg=COLOR_ACENTO).pack()
+        tk.Label(tarjeta, text=interpretacion, font=("Segoe UI", 11, "bold"), bg=COLOR_TARJETA, fg=COLOR_TEXTO_OSCURO, wraplength=380, justify="center").pack(pady=(6, 12))
+        tk.Label(tarjeta, text=f"{resumen['pilas_finales']} pilas finales   ·   {resumen['movimientos']} movimientos   ·   {duracion}", font=("Segoe UI", 9), bg=COLOR_TARJETA, fg="#60736B").pack()
+        tk.Label(tarjeta, text="Nombre para guardar el puntaje", font=("Segoe UI", 9, "bold"), bg=COLOR_TARJETA, fg=COLOR_TEXTO_OSCURO).pack(pady=(22, 5))
+        entrada = tk.Entry(tarjeta, justify="center", font=("Segoe UI", 11), relief="flat", highlightthickness=1, highlightbackground="#C9BFA6")
+        entrada.pack(fill="x", padx=35, ipady=6, pady=(0, 12))
+        crear_boton(tarjeta, "Guardar puntaje", lambda: self._guardar(resumen, entrada), principal=True).pack(fill="x", padx=35)
+        fila = tk.Frame(tarjeta, bg=COLOR_TARJETA)
+        fila.pack(fill="x", padx=35, pady=(8, 24))
+        crear_boton(fila, "Nueva partida", lambda: self._cerrar_resumen_y(ventana, self._nueva_partida), fuente=("Segoe UI", 9, "bold")).pack(side="left", expand=True, fill="x", padx=(0, 4))
+        crear_boton(fila, "Menú", lambda: self._cerrar_resumen_y(ventana, self._volver_al_menu), fuente=("Segoe UI", 9, "bold")).pack(side="left", expand=True, fill="x", padx=(4, 0))
+        ventana.grab_set()
 
     def _cerrar_resumen_y(self, ventana: tk.Toplevel, accion) -> None:
         ventana.destroy()
@@ -653,219 +362,116 @@ class VentanaJuego:
         messagebox.showinfo("Guardado", "Puntaje guardado en historial.json")
 
     def _mostrar_selector_dificultad(self, al_elegir) -> None:
-        """
-        Selector de dificultad embebido DENTRO del propio tablero, en vez
-        de una ventana Toplevel flotando encima (quedaba desconectada del
-        resto). Se usa tanto al arrancar el juego por primera vez como al
-        empezar de nuevo después de rendirse: en los dos casos, lo primero
-        que hace es limpiar marco_tablero (así el tablero viejo desaparece
-        de verdad, no queda tapado por una ventana). Al elegir una opción,
-        llama a al_elegir(dificultad) para armar la partida en su lugar.
-        """
         for widget in self.marco_tablero.winfo_children():
             widget.destroy()
+        tarjeta = crear_tarjeta(self.marco_tablero, fondo=COLOR_PANEL, borde=COLOR_BORDE)
+        tarjeta.pack(padx=20, pady=48)
+        tk.Label(tarjeta, text="ELEGÍ LA DIFICULTAD", font=("Segoe UI", 9, "bold"), bg=COLOR_PANEL, fg=COLOR_DORADO).pack(pady=(25, 4))
+        tk.Label(tarjeta, text="¿Qué desafío buscás hoy?", font=("Segoe UI", 19, "bold"), bg=COLOR_PANEL, fg=COLOR_TEXTO).pack()
+        tk.Label(tarjeta, text="Las reglas son las mismas; cambia el tamaño del mazo.", font=FUENTE_TEXTO, bg=COLOR_PANEL, fg=COLOR_MUTED).pack(pady=(6, 22))
+        opciones = tk.Frame(tarjeta, bg=COLOR_PANEL)
+        opciones.pack(padx=25, pady=(0, 26))
+        self._crear_opcion_dificultad(opciones, "Fácil", "40 cartas\nSin 8 ni 9", Dificultad.FACIL, al_elegir).pack(side="left", padx=(0, 7))
+        self._crear_opcion_dificultad(opciones, "Difícil", "48 cartas\nMazo completo", Dificultad.DIFICIL, al_elegir).pack(side="left", padx=(7, 0))
 
-        marco_selector = tk.Frame(self.marco_tablero, bg=COLOR_FONDO)
-        marco_selector.pack(pady=60, padx=40)
-
-        tk.Label(
-            marco_selector, text="¿Con qué dificultad querés jugar?",
-            font=("Arial", 14, "bold"), bg=COLOR_FONDO, fg=COLOR_TEXTO_CLARO,
-        ).pack(pady=(0, 20))
-
-        marco_botones = tk.Frame(marco_selector, bg=COLOR_FONDO)
-        marco_botones.pack()
-
-        opciones = (
-            ("Fácil\n(sin 8 ni 9 — 40 cartas)", Dificultad.FACIL),
-            ("Difícil\n(con 8 y 9 — 48 cartas)", Dificultad.DIFICIL),
-        )
-        for texto, dificultad in opciones:
-            tk.Button(
-                marco_botones, text=texto, command=lambda d=dificultad: al_elegir(d),
-                bg=COLOR_ACENTO, fg="white", font=("Arial", 11, "bold"), justify="center",
-                relief="flat", bd=0, padx=18, pady=12, cursor="hand2",
-                activebackground=COLOR_ACENTO_HOVER, activeforeground="white",
-            ).pack(side="left", padx=10)
+    def _crear_opcion_dificultad(self, padre, titulo, detalle, dificultad, al_elegir):
+        tarjeta = crear_tarjeta(padre, fondo=COLOR_TARJETA, borde=COLOR_DORADO)
+        tk.Label(tarjeta, text=titulo, font=("Segoe UI", 15, "bold"), bg=COLOR_TARJETA, fg=COLOR_TEXTO_OSCURO).pack(padx=28, pady=(20, 4))
+        tk.Label(tarjeta, text=detalle, font=FUENTE_TEXTO, bg=COLOR_TARJETA, fg="#60736B", justify="center").pack(pady=(0, 17))
+        crear_boton(tarjeta, "Elegir", lambda: al_elegir(dificultad), principal=True, fuente=("Segoe UI", 9, "bold")).pack(fill="x", padx=16, pady=(0, 18))
+        return tarjeta
 
     def _comenzar_partida(self, dificultad: Dificultad) -> None:
-        """Arma la partida elegida y la muestra en el tablero. La llama el selector de dificultad."""
         self.dificultad = dificultad
         self.juego = Juego(dificultad=dificultad)
+        self.boton_accion.config(text="Rendirse", state="normal")
         self._actualizar_pantalla()
         self._iniciar_reloj()
-        self._mostrar_mensaje("Hacé click en el mazo para empezar.", "info")
+        self._mostrar_mensaje("Hacé click en el mazo para empezar.")
 
     def _nueva_partida(self) -> None:
-        """Abandona la partida actual (se haya guardado o no) y vuelve a pedir dificultad."""
         if self._id_reloj is not None:
             self.raiz.after_cancel(self._id_reloj)
             self._id_reloj = None
+        self.juego = None
         self.boton_accion.config(text="Rendirse", state="normal")
+        self.etiqueta_info.config(text="Elegí una dificultad")
         self._actualizar_reloj_visual(0, 0)
-        self.etiqueta_info.config(text="")
-        self._mostrar_mensaje("Elegí la dificultad para arrancar de nuevo.", "info")
+        self._mostrar_mensaje("Elegí la dificultad para arrancar de nuevo.")
         self._mostrar_selector_dificultad(self._comenzar_partida)
 
     def _volver_al_menu(self) -> None:
-        """Descarta la partida actual (se haya guardado o no) y vuelve a la pantalla de menú."""
         if self._id_reloj is not None:
             self.raiz.after_cancel(self._id_reloj)
-            self._id_reloj = None
         self.canvas_principal.unbind_all("<MouseWheel>")
         self.canvas_principal.unbind_all("<Button-4>")
         self.canvas_principal.unbind_all("<Button-5>")
-        self.raiz.resizable(True, True)  # por si esta partida dejó la ventana en tamaño fijo
-        self.marco_juego.destroy()  # ahora todo (barra, mazo, tablero) cuelga de acá
+        self.marco_juego.destroy()
         MenuPrincipal(self.raiz)
 
 
 class MenuPrincipal:
-    """
-    Pantalla inicial. Se muestra primero, en la misma ventana (raiz) que
-    después usa VentanaJuego: al apretar "Jugar" simplemente se destruye
-    este marco y se arma el del juego encima.
-    """
-
     def __init__(self, raiz: tk.Tk):
         self.raiz = raiz
-        self.raiz.title("Solitario Hunting")
-        self.raiz.configure(bg=COLOR_FONDO)
-        self.raiz.resizable(True, True)  # por si la partida anterior dejó la ventana en tamaño fijo
-        _centrar_ventana(self.raiz, 520, 620)
+        raiz.title("Solitario Battle")
+        raiz.configure(bg=COLOR_MESA_OSCURO)
+        raiz.resizable(True, True)
+        _centrar_ventana(raiz, 760, 680)
+        self.marco = tk.Frame(raiz, bg=COLOR_MESA_OSCURO)
+        self.marco.pack(fill="both", expand=True)
+        self._crear_vista()
 
-        self.marco = tk.Frame(raiz, bg=COLOR_FONDO, padx=50, pady=50)
-        self.marco.place(relx=0.5, rely=0.5, anchor="center")
-
-        tk.Label(
-            self.marco, text="Solitario Hunting",
-            font=("Arial", 20, "bold"), bg=COLOR_FONDO, fg=COLOR_TEXTO_CLARO,
-        ).pack(pady=(0, 30))
-
-        tk.Button(
-            self.marco, text="Jugar", command=self._on_jugar,
-            bg=COLOR_ACENTO, fg="white", font=("Arial", 13, "bold"), width=20,
-        ).pack(pady=6)
-
-        tk.Button(
-            self.marco, text="Récords", command=self._on_records,
-            bg=COLOR_PILA, fg=COLOR_TEXTO_PILA, font=("Arial", 13), width=20,
-        ).pack(pady=6)
-
-        # Todavía no hay tutorial armado: el botón queda visible pero
-        # deshabilitado, como referencia de que la opción va a existir.
-        tk.Button(
-            self.marco, text="Tutorial", state="disabled",
-            bg=COLOR_PILA, fg=COLOR_TEXTO_PILA, font=("Arial", 13), width=20,
-        ).pack(pady=6)
-
-        tk.Button(
-            self.marco, text="Configuración", command=self._on_configuracion,
-            bg=COLOR_PILA, fg=COLOR_TEXTO_PILA, font=("Arial", 13), width=20,
-        ).pack(pady=6)
-
-        tk.Button(
-            self.marco, text="Salir", command=self.raiz.destroy,
-            bg=COLOR_PILA, fg=COLOR_TEXTO_PILA, font=("Arial", 13), width=20,
-        ).pack(pady=6)
+    def _crear_vista(self) -> None:
+        tk.Label(self.marco, text="♠  ♥  ♦  ♣", font=("Segoe UI Symbol", 18, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_DORADO).pack(pady=(68, 10))
+        tk.Label(self.marco, text="SOLITARIO\nBATTLE", font=("Segoe UI", 34, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_TEXTO, justify="center").pack()
+        tk.Label(self.marco, text="Un juego de observación y estrategia", font=FUENTE_SUBTITULO, bg=COLOR_MESA_OSCURO, fg=COLOR_MUTED).pack(pady=(12, 34))
+        tarjeta = crear_tarjeta(self.marco, fondo=COLOR_PANEL, borde=COLOR_BORDE)
+        tarjeta.pack(padx=20)
+        crear_boton(tarjeta, "Jugar", self._on_jugar, principal=True, ancho=28, fuente=("Segoe UI", 14, "bold")).pack(padx=32, pady=(30, 10), fill="x")
+        crear_boton(tarjeta, "Récords", self._on_records, ancho=28).pack(padx=32, pady=5, fill="x")
+        crear_boton(tarjeta, "Configuración", self._on_configuracion, ancho=28).pack(padx=32, pady=5, fill="x")
+        crear_boton(tarjeta, "Salir", self.raiz.destroy, ancho=28).pack(padx=32, pady=(5, 30), fill="x")
+        tk.Label(self.marco, text="Arrastrá una pila sobre su vecina izquierda para jugar.", font=("Segoe UI", 9), bg=COLOR_MESA_OSCURO, fg=COLOR_MUTED).pack(pady=(22, 0))
 
     def _on_jugar(self) -> None:
         self.marco.destroy()
         VentanaJuego(self.raiz)
 
     def _on_records(self) -> None:
-        """Abre una ventana aparte con el top 10 de mejores puntajes guardados."""
         ventana = tk.Toplevel(self.raiz)
         ventana.title("Récords")
-        ventana.configure(bg=COLOR_FONDO)
-        ventana.geometry("680x480")
+        ventana.configure(bg=COLOR_MESA_OSCURO)
         ventana.resizable(False, False)
-
-        tk.Label(
-            ventana, text="🏆 Mejores puntajes", font=("Arial", 18, "bold"),
-            bg=COLOR_FONDO, fg=COLOR_TEXTO_CLARO,
-        ).pack(pady=(18, 4))
-
+        ventana.transient(self.raiz)
+        _centrar_ventana(ventana, 760, 560)
+        tk.Label(ventana, text="SALÓN DE RÉCORDS", font=("Segoe UI", 11, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_DORADO).pack(pady=(28, 3))
+        tk.Label(ventana, text="Mejores partidas", font=("Segoe UI", 24, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_TEXTO).pack()
         historial = puntuacion.cargar_historial()
-
-        if not historial:
-            tk.Label(
-                ventana,
-                text="Todavía no hay partidas guardadas.\n¡Jugá una y quedará tu marca acá!",
-                font=("Arial", 11), bg=COLOR_FONDO, fg=COLOR_TEXTO_MUTED, justify="center",
-            ).pack(pady=60)
+        if historial:
+            self._dibujar_tabla_records(ventana, sorted(historial, key=lambda partida: partida["puntaje"], reverse=True)[:10])
         else:
-            mejores = sorted(historial, key=lambda partida: partida["puntaje"], reverse=True)[:10]
-            self._dibujar_tabla_records(ventana, mejores)
-
-        boton_cerrar = tk.Button(
-            ventana, text="Cerrar", command=ventana.destroy,
-            bg=COLOR_ACENTO, fg="white", font=("Arial", 10, "bold"),
-            relief="flat", bd=0, padx=20, pady=8, cursor="hand2",
-            activebackground=COLOR_ACENTO_HOVER, activeforeground="white",
-        )
-        boton_cerrar.bind("<Enter>", lambda e: boton_cerrar.config(bg=COLOR_ACENTO_HOVER))
-        boton_cerrar.bind("<Leave>", lambda e: boton_cerrar.config(bg=COLOR_ACENTO))
-        boton_cerrar.pack(pady=(10, 18))
+            tk.Label(ventana, text="Todavía no hay partidas guardadas.\nTu próxima partida puede inaugurar la tabla.", font=FUENTE_SUBTITULO, bg=COLOR_MESA_OSCURO, fg=COLOR_MUTED, justify="center").pack(expand=True)
+        crear_boton(ventana, "Cerrar", ventana.destroy, principal=True, fuente=("Segoe UI", 9, "bold")).pack(pady=(8, 24))
 
     def _dibujar_tabla_records(self, ventana: tk.Toplevel, mejores: list[dict]) -> None:
-        """
-        Tabla de verdad (Frame + Label por celda) en vez del Text monoespaciado
-        de antes: zebra striping en el mismo tono crema de las cartas, medallas
-        para el podio y la fila #1 resaltada en dorado — la misma paleta que
-        ya se usa en el resto del juego (paño verde, dorado, cartas color hueso).
-        """
-        columnas = (
-            ("#", 3), ("Jugador", 13), ("Dificultad", 10),
-            ("Puntaje", 8), ("Pilas", 6), ("Mov.", 6), ("Fecha", 12),
-        )
-        medallas = {1: "🥇", 2: "🥈", 3: "🥉"}
-        color_fila_par = COLOR_PILA       # crema, igual que el dorso/frente de las cartas
-        color_fila_impar = "#f0ead9"      # crema apenas más oscuro, para el efecto zebra
-        color_fila_primer_puesto = "#fff2b8"  # resalta el mejor puntaje de todos
-
-        marco_tabla = tk.Frame(ventana, bg=COLOR_FONDO)
-        marco_tabla.pack(padx=20, pady=(8, 4), fill="both", expand=True)
-
-        fila_encabezado = tk.Frame(marco_tabla, bg=COLOR_FONDO)
-        fila_encabezado.pack(fill="x", pady=(0, 4))
+        tabla = crear_tarjeta(ventana, fondo=COLOR_TARJETA, borde=COLOR_DORADO)
+        tabla.pack(fill="both", expand=True, padx=36, pady=(20, 10))
+        columnas = (("#", 4), ("Jugador", 16), ("Dificultad", 11), ("Puntaje", 10), ("Pilas", 7), ("Mov.", 7), ("Fecha", 13))
+        encabezado = tk.Frame(tabla, bg=COLOR_TEXTO_OSCURO)
+        encabezado.pack(fill="x")
         for texto, ancho in columnas:
-            tk.Label(
-                fila_encabezado, text=texto, width=ancho, font=("Arial", 10, "bold"),
-                bg=COLOR_FONDO, fg=COLOR_TEXTO_CLARO, anchor="w",
-            ).pack(side="left", padx=2)
-
+            tk.Label(encabezado, text=texto, width=ancho, anchor="w", font=("Segoe UI", 9, "bold"), bg=COLOR_TEXTO_OSCURO, fg=COLOR_TEXTO).pack(side="left", padx=2, pady=8)
+        medallas = {1: "1º", 2: "2º", 3: "3º"}
         for posicion, partida in enumerate(mejores, start=1):
-            if posicion == 1:
-                color_fila = color_fila_primer_puesto
-            elif posicion % 2 == 0:
-                color_fila = color_fila_par
-            else:
-                color_fila = color_fila_impar
-
-            fila = tk.Frame(marco_tabla, bg=color_fila)
+            fondo = "#F4E7C4" if posicion == 1 else (COLOR_TARJETA if posicion % 2 else "#EFE8D9")
+            fila = tk.Frame(tabla, bg=fondo)
             fila.pack(fill="x")
-
-            valores = (
-                medallas.get(posicion, str(posicion)),
-                partida["jugador"][:12],
-                partida.get("dificultad", "-"),
-                str(partida["puntaje"]),
-                str(partida["pilas_finales"]),
-                str(partida["movimientos"]),
-                partida.get("fecha", "-"),
-            )
+            valores = (medallas.get(posicion, str(posicion)), partida["jugador"][:15], partida.get("dificultad", "-"), str(partida["puntaje"]), str(partida["pilas_finales"]), str(partida["movimientos"]), partida.get("fecha", "-"))
             for (_, ancho), valor in zip(columnas, valores):
-                tk.Label(
-                    fila, text=valor, width=ancho, font=("Arial", 10),
-                    bg=color_fila, fg=COLOR_TEXTO_PILA, anchor="w",
-                ).pack(side="left", padx=2, pady=5)
+                tk.Label(fila, text=valor, width=ancho, anchor="w", font=("Segoe UI", 9), bg=fondo, fg=COLOR_TEXTO_OSCURO).pack(side="left", padx=2, pady=6)
 
     def _on_configuracion(self) -> None:
-        messagebox.showinfo(
-            "Configuración",
-            "Todavía no hay opciones configurables. Próximamente.",
-        )
+        messagebox.showinfo("Configuración", "Todavía no hay opciones configurables. Próximamente.")
 
 
 def jugar_partida_grafica() -> None:

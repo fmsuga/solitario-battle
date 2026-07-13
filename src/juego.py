@@ -77,13 +77,27 @@ class Juego:
 
     def calcular_puntaje(self) -> int:
         """
-        Puntaje numérico: arranca en 0 y suma 10 puntos por cada pila que
-        lograste fusionar de más. Si no fusionaste ninguna carta, te quedan
-        todas las pilas iniciales (40 en Fácil, 48 en Difícil) y el puntaje
-        es 0. Cuantas menos pilas queden, más alto el puntaje.
+        Puntaje con recompensa exponencial por cerrar el tablero.
+
+        Las fusiones dan una base pequeña, pero la dificultad real está en
+        llegar a muy pocas pilas. Por eso 2, 3, 4 y 5 pilas obtienen bonos
+        claramente distantes. En Difícil el resultado final recibe además
+        un multiplicador, para que sus récords reflejen el mazo completo.
         """
         pilas_finales = self.cantidad_pilas_finales()
-        return (self.cantidad_cartas_inicial - pilas_finales) * 10
+        puntos_por_fusiones = (self.cantidad_cartas_inicial - pilas_finales) * 10
+        bono_por_pilas = {
+            2: 10000,
+            3: 5500,
+            4: 2800,
+            5: 1400,
+            6: 700,
+            7: 350,
+            8: 180,
+        }
+        bono = bono_por_pilas.get(pilas_finales, 0)
+        multiplicador = 1.5 if self.dificultad == Dificultad.DIFICIL else 1.0
+        return round((puntos_por_fusiones + bono) * multiplicador)
 
     def duracion_segundos(self) -> int:
         """Cuánto duró (o lleva durando, si todavía no terminó) la partida."""

@@ -30,14 +30,14 @@ def test_finalizar_bloquea_repartir_y_jugadas():
     assert resultado is False
 
 
-def test_calcular_puntaje_formula():
+def test_calcular_puntaje_formula_base_sin_bono():
     juego = Juego()
     # sin repartir nada, en teoría 0 pilas; pero la fórmula se basa en
     # CANTIDAD_CARTAS_EN_MAZO - pilas_finales, probamos con pilas simuladas
     for _ in range(5):
         juego.repartir_carta()
     pilas = juego.cantidad_pilas_finales()
-    puntaje_esperado = (48 - pilas) * 10
+    puntaje_esperado = round(((48 - pilas) * 10) * 1.5)
     assert juego.calcular_puntaje() == puntaje_esperado
 
 
@@ -118,6 +118,27 @@ def test_juego_facil_arranca_con_40_cartas_y_calcula_puntaje_bien():
         juego.repartir_carta()
     pilas = juego.cantidad_pilas_finales()
     assert juego.calcular_puntaje() == (40 - pilas) * 10
+
+
+def test_puntaje_premia_mucho_mas_las_pocas_pilas_y_dificil():
+    from cartas import Dificultad
+
+    puntajes_dificil = []
+    for pilas_finales in (2, 3, 4, 5):
+        juego = Juego(dificultad=Dificultad.DIFICIL)
+        juego.tablero.pilas = [object()] * pilas_finales
+        puntajes_dificil.append(juego.calcular_puntaje())
+
+    # Cada escalón representa un logro mucho mayor que el siguiente.
+    assert puntajes_dificil[0] - puntajes_dificil[1] > 6000
+    assert puntajes_dificil[1] - puntajes_dificil[2] > 3000
+    assert puntajes_dificil[2] - puntajes_dificil[3] > 1500
+
+    facil = Juego(dificultad=Dificultad.FACIL)
+    facil.tablero.pilas = [object()] * 5
+    dificil = Juego(dificultad=Dificultad.DIFICIL)
+    dificil.tablero.pilas = [object()] * 5
+    assert dificil.calcular_puntaje() > facil.calcular_puntaje()
 
 
 def test_juego_dificil_es_el_default():
