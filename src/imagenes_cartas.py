@@ -9,9 +9,8 @@ imágenes a un tamaño arbitrario:
     pip install pillow --break-system-packages
 """
 
-from pathlib import Path
-
 from cartas import Carta
+from recursos import ruta_base_recursos
 
 try:
     from PIL import Image, ImageDraw, ImageFont, ImageTk
@@ -19,7 +18,9 @@ try:
 except ImportError:
     PILLOW_DISPONIBLE = False
 
-CARPETA_IMAGENES = Path(__file__).parent.parent / "assets" / "cartas_img"
+# En desarrollo apunta a la raíz del proyecto; dentro del .exe apunta a
+# sys._MEIPASS, donde PyInstaller extrae los recursos empaquetados.
+CARPETA_IMAGENES = ruta_base_recursos() / "assets" / "cartas_img"
 
 ANCHO_CARTA = 112
 ALTO_CARTA = 176

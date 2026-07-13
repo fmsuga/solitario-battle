@@ -53,6 +53,24 @@ def _mensaje_error(error: Exception) -> str:
     return "No se pudieron actualizar los récords mundiales."
 
 
+def _normalizar_record(record: dict) -> dict:
+    """Traduce los nombres de Supabase al formato usado por la interfaz.
+
+    La tabla conserva nombres de columna en inglés, mientras el historial
+    local y la UI usan español. Centralizar la conversión evita que un récord
+    publicado correctamente falle al mostrarse por claves distintas.
+    """
+    return {
+        "jugador": record.get("player_name", "-"),
+        "dificultad": record.get("difficulty", "-"),
+        "puntaje": record.get("score", 0),
+        "pilas_finales": record.get("piles_finales", 0),
+        "movimientos": record.get("moves", 0),
+        "duracion_segundos": record.get("duration_seconds", 0),
+        "fecha": record.get("played_at", ""),
+    }
+
+
 def enviar_record(nombre: str, resumen: dict) -> str | None:
     """Publica una partida y devuelve un mensaje sólo si no pudo sincronizarse."""
     datos = {
@@ -79,7 +97,8 @@ def obtener_records_globales(limite: int = 50) -> tuple[list[dict], str | None]:
         "limit": limite,
     })
     try:
-        return _solicitud("GET", f"{TABLA_RECORDS}?{consulta}"), None
+        records = _solicitud("GET", f"{TABLA_RECORDS}?{consulta}")
+        return [_normalizar_record(record) for record in records], None
     except (HTTPError, URLError, TimeoutError, ValueError) as error:
         return [], _mensaje_error(error)
 
@@ -92,6 +111,7 @@ def obtener_records_personales(limite: int = 50) -> tuple[list[dict], str | None
         "limit": limite,
     })
     try:
-        return _solicitud("GET", f"{TABLA_RECORDS}?{consulta}"), None
+        records = _solicitud("GET", f"{TABLA_RECORDS}?{consulta}")
+        return [_normalizar_record(record) for record in records], None
     except (HTTPError, URLError, TimeoutError, ValueError) as error:
         return [], _mensaje_error(error)

@@ -10,7 +10,8 @@ echo [1/3] Actualizando e instalando dependencias...
 python -m pip install --upgrade pip
 if errorlevel 1 goto :error
 
-python -m pip install pillow pyinstaller
+REM pygame-ce conserva el modulo `pygame` y ofrece wheel para Python 3.14.
+python -m pip install --upgrade pillow pygame-ce pyinstaller
 if errorlevel 1 goto :error
 
 echo.
@@ -26,9 +27,10 @@ python -m PyInstaller ^
     --windowed ^
     --clean ^
     --noupx ^
-    --name SolitarioDeLasCincuentaCartas ^
+    --name SolitarioBattle ^
     --paths src ^
     --add-data "assets/cartas_img;assets/cartas_img" ^
+    --add-data "assets/sonidos;assets/sonidos" ^
     main_grafico.py
 
 if errorlevel 1 goto :error
@@ -38,7 +40,7 @@ echo ==========================================
 echo Compilacion finalizada correctamente.
 echo.
 echo El ejecutable se encuentra en:
-echo     dist\SolitarioDeLasCincuentaCartas.exe
+echo     dist\SolitarioBattle.exe
 echo ==========================================
 echo.
 pause

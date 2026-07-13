@@ -9,11 +9,18 @@ import math
 import tkinter as tk
 from tkinter import messagebox
 
+try:
+    from pygame import mixer
+except ImportError:  # Permite ejecutar la interfaz también fuera de Windows.
+    mixer = None
+
 from cartas import CANTIDAD_CARTAS_EN_MAZO, Dificultad
+import configuracion
 from imagenes_cartas import ALTO_CARTA, ANCHO_CARTA, cargar_imagen_carta, cargar_imagen_dorso
 from juego import Juego
 import puntuacion
 import records_online
+from recursos import ruta_base_recursos
 
 
 # Paleta: paño de mesa profundo, carbón y tonos cálidos de las cartas.
@@ -40,13 +47,18 @@ FUENTE_BOTON = ("Segoe UI", 11, "bold")
 FUENTE_ESTADISTICA = ("Consolas", 20, "bold")
 
 RATIO_CARTA = ALTO_CARTA / ANCHO_CARTA
-COLUMNAS_MIN_TABLERO = 6
-COLUMNAS_MAX_TABLERO = 12
-ANCHO_CARTA_MINIMO = 62
-ANCHO_CARTA_MAXIMO = 190
+# El tablero se desplaza verticalmente, pero mantiene varias cartas visibles
+# a la vez para que leer la mesa no exija recorrer demasiado la pantalla.
+COLUMNAS_TABLERO = 10
+ANCHO_CARTA_MINIMO = 100
+ANCHO_CARTA_MAXIMO = 135
 GAP_CELDA = 10
 MARGEN_PANTALLA_X = 70
 MARGEN_PANTALLA_Y = 100
+
+CARPETA_SONIDOS = ruta_base_recursos() / "assets" / "sonidos"
+SONIDO_REPARTIR = CARPETA_SONIDOS / "repartir.wav"
+SONIDO_MOVIMIENTO_EXITOSO = CARPETA_SONIDOS / "movimiento_exitoso.wav"
 
 
 def _centrar_ventana(raiz: tk.Tk, ancho: int, alto: int) -> None:
@@ -58,20 +70,19 @@ def _centrar_ventana(raiz: tk.Tk, ancho: int, alto: int) -> None:
     raiz.geometry(f"{ancho}x{alto}+{x}+{y}")
 
 
-def _calcular_layout_tablero(ancho_disponible: int, alto_disponible: int) -> tuple[int, int, int]:
-    """Devuelve la grilla que maximiza las cartas sin cortar la última fila."""
-    total_celdas = CANTIDAD_CARTAS_EN_MAZO + 1  # mazo + todas las pilas posibles
-    mejor = (COLUMNAS_MIN_TABLERO, 1)
-    for columnas in range(COLUMNAS_MIN_TABLERO, COLUMNAS_MAX_TABLERO + 1):
-        filas = math.ceil(total_celdas / columnas)
-        por_ancho = (ancho_disponible - (columnas - 1) * GAP_CELDA) / columnas
-        por_alto = ((alto_disponible - (filas - 1) * GAP_CELDA) / filas) / RATIO_CARTA
-        candidato = min(por_ancho, por_alto, ANCHO_CARTA_MAXIMO)
-        if candidato > mejor[1]:
-            mejor = (columnas, candidato)
-    columnas, ancho = mejor
-    ancho = max(1, int(ancho))
-    return columnas, ancho, int(ancho * RATIO_CARTA)
+def _calcular_layout_tablero(ancho_disponible: int) -> tuple[int, int, int]:
+    """Devuelve diez columnas legibles; las filas restantes usan scroll."""
+    ancho = (ancho_disponible - (COLUMNAS_TABLERO - 1) * GAP_CELDA) / COLUMNAS_TABLERO
+    ancho = max(ANCHO_CARTA_MINIMO, min(int(ancho), ANCHO_CARTA_MAXIMO))
+    return COLUMNAS_TABLERO, ancho, int(ancho * RATIO_CARTA)
+
+
+def _posicion_en_viborita(posicion: int, columnas: int = COLUMNAS_TABLERO) -> tuple[int, int]:
+    """Convierte una posición lineal a fila/columna alternando la dirección."""
+    fila, columna = divmod(posicion, columnas)
+    if fila % 2:
+        columna = columnas - 1 - columna
+    return fila, columna
 
 
 def crear_boton(
@@ -108,10 +119,26 @@ class VentanaJuego:
         self.juego: Juego | None = None
         self.dificultad: Dificultad | None = None
         self._imagenes_actuales = []
+        self._cache_imagenes = {}
         self._id_reloj = None
         self._arrastre = None
+        self._id_ocultar_mensaje = None
+        self._version_mensaje = 0
+        self.volumen = configuracion.cargar_volumen()
+        self._audio_disponible = None
+        self._sonidos = {}
         self._armar_widgets_fijos()
+        self._maximizar_ventana()
         self._mostrar_selector_dificultad(self._comenzar_partida)
+
+    def _maximizar_ventana(self) -> None:
+        """Aprovecha la pantalla completa sin ocultar los controles del sistema."""
+        try:
+            self.raiz.state("zoomed")
+        except tk.TclError:
+            # En plataformas donde Tk no ofrece "zoomed", la ventana conserva
+            # su tamaño calculado normalmente.
+            pass
 
     def _armar_widgets_fijos(self) -> None:
         self.marco_juego = tk.Frame(self.raiz, bg=COLOR_MESA)
@@ -132,28 +159,19 @@ class VentanaJuego:
         self.canvas_principal.bind_all("<Button-5>", lambda _e: self.canvas_principal.yview_scroll(1, "units"))
 
         self._crear_barra_superior()
-        self.etiqueta_mensaje = tk.Label(
-            self.marco_contenido, text="Elegí la dificultad para arrancar.", font=FUENTE_TEXTO,
-            bg=COLOR_MESA, fg=COLOR_MUTED, wraplength=760, justify="center",
-        )
-        self.etiqueta_mensaje.pack(pady=(14, 8))
         self.marco_tablero = tk.Frame(self.marco_contenido, bg=COLOR_MESA)
-        self.marco_tablero.pack(padx=24, pady=(0, 28))
+        self.marco_tablero.pack(padx=24, pady=(18, 28))
 
-        # Header ya construido: el cálculo usa el alto real restante, no una estimación.
+        # La altura no limita el tamaño: el tablero tiene scroll vertical para
+        # que las cartas sigan siendo cómodas de leer en notebooks.
         self.raiz.update_idletasks()
         ancho_area = self.raiz.winfo_screenwidth() - MARGEN_PANTALLA_X
-        alto_area = self.raiz.winfo_screenheight() - MARGEN_PANTALLA_Y
         alto_header = self.marco_contenido.winfo_reqheight()
-        self.columnas_tablero, ancho, self.alto_carta = _calcular_layout_tablero(
-            ancho_area - 40, max(140, alto_area - alto_header - 24)
-        )
-        self.ancho_carta = max(ANCHO_CARTA_MINIMO, ancho)
-        self.alto_carta = int(self.ancho_carta * RATIO_CARTA)
+        self.columnas_tablero, self.ancho_carta, self.alto_carta = _calcular_layout_tablero(ancho_area - 40)
         filas = math.ceil((CANTIDAD_CARTAS_EN_MAZO + 1) / self.columnas_tablero)
         ancho_tablero = self.columnas_tablero * self.ancho_carta + (self.columnas_tablero - 1) * GAP_CELDA
         alto_tablero = filas * self.alto_carta + (filas - 1) * GAP_CELDA
-        _centrar_ventana(self.raiz, max(780, ancho_tablero + 70), alto_header + alto_tablero + 55)
+        _centrar_ventana(self.raiz, max(780, ancho_tablero + 70), min(alto_header + alto_tablero + 55, self.raiz.winfo_screenheight() - 50))
         self.raiz.minsize(720, 600)
 
     def _crear_barra_superior(self) -> None:
@@ -162,6 +180,11 @@ class VentanaJuego:
         identidad = tk.Frame(barra, bg=COLOR_PANEL)
         identidad.pack(side="left", padx=18, pady=13)
         tk.Label(identidad, text="SOLITARIO BATTLE", font=("Segoe UI", 12, "bold"), bg=COLOR_PANEL, fg=COLOR_DORADO).pack(anchor="w")
+        self.etiqueta_mensaje = tk.Label(
+            barra, text="", font=("Segoe UI", 12, "bold"),
+            bg=COLOR_PANEL, fg=COLOR_PANEL,
+        )
+        self.etiqueta_mensaje.place(relx=0.34, rely=0.5, anchor="center")
         self.etiqueta_info = tk.Label(identidad, text="Elegí una dificultad", font=("Segoe UI", 9), bg=COLOR_PANEL, fg=COLOR_MUTED)
         self.etiqueta_info.pack(anchor="w", pady=(2, 0))
 
@@ -196,9 +219,66 @@ class VentanaJuego:
         self.etiqueta_tiempo.config(text=puntuacion.formatear_duracion(segundos))
         self.etiqueta_movimientos.config(text=str(movimientos))
 
-    def _mostrar_mensaje(self, texto: str, tipo: str = "info") -> None:
+    def _mostrar_mensaje(self, texto: str, tipo: str = "info", duracion_ms: int | None = None) -> None:
+        """Muestra un aviso con una entrada suave y opcionalmente lo oculta."""
         colores = {"exito": COLOR_EXITO, "error": COLOR_ERROR, "info": COLOR_MUTED}
-        self.etiqueta_mensaje.config(text=texto, fg=colores.get(tipo, COLOR_MUTED))
+        color_final = colores.get(tipo, COLOR_MUTED)
+        fondo = COLOR_PANEL
+        texto_visible = "👍  Jugada válida, buen ojo." if tipo == "exito" else texto
+        if self._id_ocultar_mensaje is not None:
+            self.raiz.after_cancel(self._id_ocultar_mensaje)
+            self._id_ocultar_mensaje = None
+        self._version_mensaje += 1
+        version = self._version_mensaje
+        self._color_mensaje = color_final
+        self._fondo_mensaje = fondo
+        self.etiqueta_mensaje.config(
+            text=texto_visible, fg=fondo, bg=fondo,
+            font=("Segoe UI", 12, "bold"), padx=0, pady=0,
+            highlightthickness=0,
+        )
+
+        def animar(paso: int = 0) -> None:
+            if version != self._version_mensaje:
+                return
+            progreso = paso / 5
+            self.etiqueta_mensaje.config(fg=self._mezclar_colores(fondo, color_final, progreso))
+            if paso < 5:
+                self.raiz.after(28, lambda: animar(paso + 1))
+
+        animar()
+        if duracion_ms is not None:
+            self._id_ocultar_mensaje = self.raiz.after(
+                duracion_ms, lambda: self._ocultar_mensaje(version)
+            )
+
+    @staticmethod
+    def _mezclar_colores(origen: str, destino: str, progreso: float) -> str:
+        """Interpela dos colores hexadecimales para una animación simple."""
+        origen_rgb = tuple(int(origen[indice:indice + 2], 16) for indice in (1, 3, 5))
+        destino_rgb = tuple(int(destino[indice:indice + 2], 16) for indice in (1, 3, 5))
+        mezcla = tuple(round(inicio + (fin - inicio) * progreso) for inicio, fin in zip(origen_rgb, destino_rgb))
+        return "#" + "".join(f"{canal:02X}" for canal in mezcla)
+
+    def _ocultar_mensaje(self, version: int) -> None:
+        if version != self._version_mensaje:
+            return
+
+        def desvanecer(paso: int = 0) -> None:
+            if version != self._version_mensaje:
+                return
+            progreso = paso / 5
+            self.etiqueta_mensaje.config(fg=self._mezclar_colores(self._color_mensaje, self._fondo_mensaje, progreso))
+            if paso < 5:
+                self.raiz.after(28, lambda: desvanecer(paso + 1))
+            else:
+                self.etiqueta_mensaje.config(
+                    text="", fg=COLOR_PANEL, bg=COLOR_PANEL, font=("Segoe UI", 12, "bold"),
+                    padx=0, pady=0, highlightthickness=0,
+                )
+                self._id_ocultar_mensaje = None
+
+        desvanecer()
 
     def _on_rueda_mouse(self, evento: tk.Event) -> None:
         if getattr(evento, "delta", 0):
@@ -220,7 +300,7 @@ class VentanaJuego:
         if self.juego is None or self.juego.esta_terminada() or not self.juego.quedan_cartas_en_mano():
             return
         self.juego.repartir_carta()
-        self._mostrar_mensaje("Carta repartida. ¿Ves alguna jugada?", "info")
+        self._reproducir_sonido(SONIDO_REPARTIR)
         self._actualizar_pantalla()
 
     def _on_accion_principal(self) -> None:
@@ -245,32 +325,72 @@ class VentanaJuego:
         if self.juego is None or self.juego.esta_terminada():
             return
         boton = self._botones_pilas[indice]
-        self._arrastre = {"indice_origen": indice, "boton": boton, "x_inicial": boton.winfo_x(), "y_inicial": boton.winfo_y(), "x_mouse_inicial": evento.x_root, "y_mouse_inicial": evento.y_root}
-        boton.grid_forget()
-        boton.place(x=self._arrastre["x_inicial"], y=self._arrastre["y_inicial"])
-        boton.lift()
+        x_inicial, y_inicial = boton.winfo_x(), boton.winfo_y()
+        fantasma = tk.Label(
+            self.marco_tablero, image=boton.imagen, bg=COLOR_MESA,
+            bd=0, highlightthickness=2, highlightbackground=COLOR_DORADO,
+        )
+        fantasma.place(x=x_inicial, y=y_inicial)
+        fantasma.lift()
+        # La carta real se oculta durante el arrastre: así no parece que haya
+        # dos cartas apiladas en el origen ni quedan restos visuales.
+        boton.grid_remove()
+        boton.configure(highlightbackground=COLOR_DORADO)
+        self._arrastre = {
+            "indice_origen": indice, "boton": boton, "fantasma": fantasma,
+            "x_inicial": x_inicial, "y_inicial": y_inicial,
+            "x_mouse_inicial": evento.x_root, "y_mouse_inicial": evento.y_root,
+            "id_movimiento": None, "posicion_pendiente": None,
+        }
 
     def _arrastrando(self, evento: tk.Event) -> None:
         if self._arrastre is None:
             return
-        self._arrastre["boton"].place(
-            x=self._arrastre["x_inicial"] + evento.x_root - self._arrastre["x_mouse_inicial"],
-            y=self._arrastre["y_inicial"] + evento.y_root - self._arrastre["y_mouse_inicial"],
-        )
+        self._arrastre["posicion_pendiente"] = (evento.x_root, evento.y_root)
+        if self._arrastre["id_movimiento"] is None:
+            self._arrastre["id_movimiento"] = self.raiz.after(16, self._actualizar_fantasma_arrastre)
 
-    def _soltar_arrastre(self, _evento: tk.Event) -> None:
+    def _actualizar_fantasma_arrastre(self) -> None:
         if self._arrastre is None:
             return
-        indice_origen = self._arrastre["indice_origen"]
-        boton = self._arrastre["boton"]
+        self._arrastre["id_movimiento"] = None
+        x_mouse, y_mouse = self._arrastre["posicion_pendiente"]
+        self._colocar_fantasma(self._arrastre, x_mouse, y_mouse)
+
+    @staticmethod
+    def _colocar_fantasma(arrastre: dict, x_mouse: int, y_mouse: int) -> None:
+        arrastre["fantasma"].place_configure(
+            x=arrastre["x_inicial"] + x_mouse - arrastre["x_mouse_inicial"],
+            y=arrastre["y_inicial"] + y_mouse - arrastre["y_mouse_inicial"],
+        )
+
+    def _soltar_arrastre(self, evento: tk.Event) -> None:
+        if self._arrastre is None:
+            return
+        arrastre = self._arrastre
+        if arrastre["id_movimiento"] is not None:
+            self.raiz.after_cancel(arrastre["id_movimiento"])
+        self._colocar_fantasma(arrastre, evento.x_root, evento.y_root)
+        indice_origen = arrastre["indice_origen"]
+        boton = arrastre["boton"]
+        fantasma = arrastre["fantasma"]
         self._arrastre = None
         destino = indice_origen - 1
-        if destino >= 0 and self._soltada_sobre_pila(boton, destino):
+        soltada_en_destino = destino >= 0 and self._soltada_sobre_pila(fantasma, destino)
+        fantasma.destroy()
+        boton.configure(highlightbackground=COLOR_BORDE)
+        if soltada_en_destino:
             if self.juego.intentar_jugada(destino):
-                self._mostrar_mensaje("¡Jugada válida! Buen ojo.", "exito")
+                self._reproducir_sonido(SONIDO_MOVIMIENTO_EXITOSO)
+                self._mostrar_mensaje("¡Jugada válida! Buen ojo.", "exito", duracion_ms=2300)
+                self._actualizar_pantalla()
             else:
-                self._mostrar_mensaje("Ahí no hay ninguna coincidencia. Fijate de nuevo.", "error")
-        self._actualizar_pantalla()
+                self._mostrar_mensaje("Ahí no hay ninguna coincidencia. Fijate de nuevo.", "error", duracion_ms=2300)
+                boton.grid()
+        else:
+            # grid() sin argumentos recupera exactamente la celda que tenía
+            # antes de grid_remove(), sin reconstruir ni parpadear la mesa.
+            boton.grid()
 
     def _soltada_sobre_pila(self, boton: tk.Widget, indice_objetivo: int) -> bool:
         if indice_objetivo >= len(self._botones_pilas):
@@ -280,23 +400,47 @@ class VentanaJuego:
         centro_y = boton.winfo_y() + boton.winfo_height() / 2
         return objetivo.winfo_x() <= centro_x <= objetivo.winfo_x() + objetivo.winfo_width() and objetivo.winfo_y() <= centro_y <= objetivo.winfo_y() + objetivo.winfo_height()
 
+    def _reproducir_sonido(self, ruta_sonido) -> None:
+        """Reproduce un WAV propio de forma asíncrona, si está disponible."""
+        if mixer is None or not ruta_sonido.is_file():
+            return
+        if self._audio_disponible is None:
+            try:
+                mixer.init()
+                self._audio_disponible = True
+            except Exception:
+                self._audio_disponible = False
+        if not self._audio_disponible:
+            return
+        try:
+            sonido = self._sonidos.get(ruta_sonido)
+            if sonido is None:
+                sonido = mixer.Sound(str(ruta_sonido))
+                self._sonidos[ruta_sonido] = sonido
+            sonido.set_volume(self.volumen)
+            sonido.play()
+        except Exception:
+            # Un archivo de sonido inválido no debe impedir jugar.
+            return
+
     def _actualizar_pantalla(self) -> None:
         for widget in self.marco_tablero.winfo_children():
             widget.destroy()
         self._imagenes_actuales = []
         self._botones_pilas = []
         cartas_restantes = self.juego.mazo.quedan_cartas()
-        self._imagen_dorso = cargar_imagen_dorso(self.ancho_carta, self.alto_carta, cantidad=cartas_restantes)
+        self._imagen_dorso = self._obtener_imagen_dorso(cartas_restantes)
         self.boton_mazo = self._crear_boton_carta(self._imagen_dorso, self._on_repartir)
         self.boton_mazo.grid(row=0, column=0)
 
         pilas = self.juego.tablero.pilas
         for indice, pila in enumerate(pilas):
             posicion = indice + 1
-            imagen = cargar_imagen_carta(pila.tope(), self.ancho_carta, self.alto_carta, cantidad=len(pila))
+            imagen = self._obtener_imagen_carta(pila.tope(), len(pila))
             self._imagenes_actuales.append(imagen)
             boton = self._crear_boton_carta(imagen)
-            boton.grid(row=posicion // self.columnas_tablero, column=posicion % self.columnas_tablero)
+            fila, columna = _posicion_en_viborita(posicion, self.columnas_tablero)
+            boton.grid(row=fila, column=columna)
             boton.bind("<ButtonPress-1>", lambda e, i=indice: self._iniciar_arrastre(e, i))
             boton.bind("<B1-Motion>", self._arrastrando)
             boton.bind("<ButtonRelease-1>", self._soltar_arrastre)
@@ -315,7 +459,25 @@ class VentanaJuego:
             self._mostrar_mensaje("Se acabaron las cartas. Si no ves más jugadas, terminá la partida.")
 
     def _crear_boton_carta(self, imagen, comando=None) -> tk.Button:
-        return tk.Button(self.marco_tablero, image=imagen, command=comando, bg=COLOR_MESA, activebackground=COLOR_MESA, cursor="hand2", relief="flat", bd=0, highlightthickness=2, highlightbackground=COLOR_BORDE, highlightcolor=COLOR_DORADO)
+        boton = tk.Button(self.marco_tablero, image=imagen, command=comando, bg=COLOR_MESA, activebackground=COLOR_MESA, cursor="hand2", relief="flat", bd=0, highlightthickness=2, highlightbackground=COLOR_BORDE, highlightcolor=COLOR_DORADO)
+        boton.imagen = imagen
+        return boton
+
+    def _obtener_imagen_dorso(self, cantidad: int):
+        clave = ("dorso", cantidad, self.ancho_carta, self.alto_carta)
+        if clave not in self._cache_imagenes:
+            self._cache_imagenes[clave] = cargar_imagen_dorso(
+                self.ancho_carta, self.alto_carta, cantidad=cantidad
+            )
+        return self._cache_imagenes[clave]
+
+    def _obtener_imagen_carta(self, carta, cantidad: int):
+        clave = ("carta", carta.palo.name, carta.valor, cantidad, self.ancho_carta, self.alto_carta)
+        if clave not in self._cache_imagenes:
+            self._cache_imagenes[clave] = cargar_imagen_carta(
+                carta, self.ancho_carta, self.alto_carta, cantidad=cantidad
+            )
+        return self._cache_imagenes[clave]
 
     def _terminar_partida(self) -> None:
         self.boton_mazo.config(state="disabled")
@@ -343,18 +505,18 @@ class VentanaJuego:
         tk.Label(tarjeta, text="Nombre para guardar el puntaje", font=("Segoe UI", 9, "bold"), bg=COLOR_TARJETA, fg=COLOR_TEXTO_OSCURO).pack(pady=(22, 5))
         entrada = tk.Entry(tarjeta, justify="center", font=("Segoe UI", 11), relief="flat", highlightthickness=1, highlightbackground="#C9BFA6")
         entrada.pack(fill="x", padx=35, ipady=6, pady=(0, 12))
-        crear_boton(tarjeta, "Guardar puntaje", lambda: self._guardar(resumen, entrada), principal=True).pack(fill="x", padx=35)
+        crear_boton(tarjeta, "Guardar puntaje", lambda: self._guardar(ventana, resumen, entrada), principal=True).pack(fill="x", padx=35)
         fila = tk.Frame(tarjeta, bg=COLOR_TARJETA)
         fila.pack(fill="x", padx=35, pady=(8, 24))
-        crear_boton(fila, "Nueva partida", lambda: self._cerrar_resumen_y(ventana, self._nueva_partida), fuente=("Segoe UI", 9, "bold")).pack(side="left", expand=True, fill="x", padx=(0, 4))
-        crear_boton(fila, "Menú", lambda: self._cerrar_resumen_y(ventana, self._volver_al_menu), fuente=("Segoe UI", 9, "bold")).pack(side="left", expand=True, fill="x", padx=(4, 0))
+        crear_boton(fila, "Nueva partida", lambda: self._cerrar_resumen_y(ventana, self._nueva_partida), principal=True, fuente=("Segoe UI", 9, "bold")).pack(side="left", expand=True, fill="x", padx=(0, 4))
+        crear_boton(fila, "Menú principal", lambda: self._cerrar_resumen_y(ventana, self._volver_al_menu), fuente=("Segoe UI", 9, "bold")).pack(side="left", expand=True, fill="x", padx=(4, 0))
         ventana.grab_set()
 
     def _cerrar_resumen_y(self, ventana: tk.Toplevel, accion) -> None:
         ventana.destroy()
         accion()
 
-    def _guardar(self, resumen: dict, entrada_nombre: tk.Entry) -> None:
+    def _guardar(self, ventana: tk.Toplevel, resumen: dict, entrada_nombre: tk.Entry) -> None:
         nombre = entrada_nombre.get().strip()
         if not nombre:
             messagebox.showinfo("Falta el nombre", "Escribí un nombre antes de guardar.")
@@ -365,6 +527,9 @@ class VentanaJuego:
         if error_sincronizacion:
             mensaje = f"Puntaje guardado localmente. {error_sincronizacion}"
         messagebox.showinfo("Guardado", mensaje)
+        # Una misma partida sólo se puede guardar una vez. Al cerrar el
+        # resumen volvemos al menú, desde donde el récord ya está disponible.
+        self._cerrar_resumen_y(ventana, self._volver_al_menu)
 
     def _mostrar_selector_dificultad(self, al_elegir) -> None:
         for widget in self.marco_tablero.winfo_children():
@@ -375,16 +540,32 @@ class VentanaJuego:
         tk.Label(tarjeta, text="¿Qué desafío buscás hoy?", font=("Segoe UI", 19, "bold"), bg=COLOR_PANEL, fg=COLOR_TEXTO).pack()
         tk.Label(tarjeta, text="Las reglas son las mismas; cambia el tamaño del mazo.", font=FUENTE_TEXTO, bg=COLOR_PANEL, fg=COLOR_MUTED).pack(pady=(6, 22))
         opciones = tk.Frame(tarjeta, bg=COLOR_PANEL)
-        opciones.pack(padx=25, pady=(0, 26))
-        self._crear_opcion_dificultad(opciones, "Fácil", "40 cartas\nSin 8 ni 9", Dificultad.FACIL, al_elegir).pack(side="left", padx=(0, 7))
-        self._crear_opcion_dificultad(opciones, "Difícil", "48 cartas\nMazo completo", Dificultad.DIFICIL, al_elegir).pack(side="left", padx=(7, 0))
+        opciones.pack(padx=30, pady=(0, 30))
+        self._crear_opcion_dificultad(opciones, "Fácil", "40 cartas", "Sin 8 ni 9 · ideal para empezar", Dificultad.FACIL, al_elegir).pack(side="left", padx=(0, 10))
+        self._crear_opcion_dificultad(opciones, "Difícil", "48 cartas", "Mazo completo · el desafío total", Dificultad.DIFICIL, al_elegir).pack(side="left", padx=(10, 0))
 
-    def _crear_opcion_dificultad(self, padre, titulo, detalle, dificultad, al_elegir):
+    def _crear_opcion_dificultad(self, padre, titulo, cantidad, detalle, dificultad, al_elegir):
         tarjeta = crear_tarjeta(padre, fondo=COLOR_TARJETA, borde=COLOR_DORADO)
-        tk.Label(tarjeta, text=titulo, font=("Segoe UI", 15, "bold"), bg=COLOR_TARJETA, fg=COLOR_TEXTO_OSCURO).pack(padx=28, pady=(20, 4))
-        tk.Label(tarjeta, text=detalle, font=FUENTE_TEXTO, bg=COLOR_TARJETA, fg="#60736B", justify="center").pack(pady=(0, 17))
-        crear_boton(tarjeta, "Elegir", lambda: al_elegir(dificultad), principal=True, fuente=("Segoe UI", 9, "bold")).pack(fill="x", padx=16, pady=(0, 18))
+        encabezado = tk.Frame(tarjeta, bg=COLOR_PANEL_ELEVADO)
+        encabezado.pack(fill="x")
+        tk.Label(encabezado, text=titulo.upper(), font=("Segoe UI", 17, "bold"), bg=COLOR_PANEL_ELEVADO, fg=COLOR_TEXTO).pack(padx=38, pady=(20, 2))
+        tk.Label(encabezado, text=cantidad, font=("Segoe UI", 10, "bold"), bg=COLOR_PANEL_ELEVADO, fg=COLOR_DORADO).pack(pady=(0, 18))
+        tk.Label(tarjeta, text=detalle, font=("Segoe UI", 10), bg=COLOR_TARJETA, fg="#60736B", justify="center", wraplength=230).pack(padx=24, pady=(22, 20))
+        crear_boton(tarjeta, f"Jugar en {titulo}", lambda: al_elegir(dificultad), principal=True, fuente=("Segoe UI", 10, "bold")).pack(fill="x", padx=22, pady=(0, 22))
+        self._hacer_tarjeta_clickeable(tarjeta, lambda: al_elegir(dificultad))
         return tarjeta
+
+    @staticmethod
+    def _hacer_tarjeta_clickeable(tarjeta: tk.Widget, comando) -> None:
+        """Permite elegir la dificultad desde cualquier área no-botón de la card."""
+        def enlazar(widget: tk.Widget) -> None:
+            if not isinstance(widget, tk.Button):
+                widget.configure(cursor="hand2")
+                widget.bind("<Button-1>", lambda _evento: comando())
+            for hijo in widget.winfo_children():
+                enlazar(hijo)
+
+        enlazar(tarjeta)
 
     def _comenzar_partida(self, dificultad: Dificultad) -> None:
         self.dificultad = dificultad
@@ -392,13 +573,13 @@ class VentanaJuego:
         self.boton_accion.config(text="Rendirse", state="normal")
         self._actualizar_pantalla()
         self._iniciar_reloj()
-        self._mostrar_mensaje("Hacé click en el mazo para empezar.")
 
     def _nueva_partida(self) -> None:
         if self._id_reloj is not None:
             self.raiz.after_cancel(self._id_reloj)
             self._id_reloj = None
         self.juego = None
+        self._cache_imagenes.clear()
         self.boton_accion.config(text="Rendirse", state="normal")
         self.etiqueta_info.config(text="Elegí una dificultad")
         self._actualizar_reloj_visual(0, 0)
@@ -412,6 +593,10 @@ class VentanaJuego:
         self.canvas_principal.unbind_all("<Button-4>")
         self.canvas_principal.unbind_all("<Button-5>")
         self.marco_juego.destroy()
+        try:
+            self.raiz.state("normal")
+        except tk.TclError:
+            pass
         MenuPrincipal(self.raiz)
 
 
@@ -504,7 +689,41 @@ class MenuPrincipal:
                 tk.Label(fila, text=valor, width=ancho, anchor="w", font=("Segoe UI", 9), bg=fondo, fg=COLOR_TEXTO_OSCURO).pack(side="left", padx=2, pady=6)
 
     def _on_configuracion(self) -> None:
-        messagebox.showinfo("Configuración", "Todavía no hay opciones configurables. Próximamente.")
+        ventana = tk.Toplevel(self.raiz)
+        ventana.title("Configuración")
+        ventana.configure(bg=COLOR_MESA_OSCURO)
+        ventana.resizable(False, False)
+        ventana.transient(self.raiz)
+        _centrar_ventana(ventana, 460, 330)
+
+        tk.Label(ventana, text="CONFIGURACIÓN", font=("Segoe UI", 10, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_DORADO).pack(pady=(30, 5))
+        tk.Label(ventana, text="Sonido del juego", font=("Segoe UI", 22, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_TEXTO).pack()
+        tarjeta = crear_tarjeta(ventana, fondo=COLOR_TARJETA, borde=COLOR_DORADO)
+        tarjeta.pack(fill="both", expand=True, padx=36, pady=(20, 30))
+
+        tk.Label(tarjeta, text="VOLUMEN", font=("Segoe UI", 9, "bold"), bg=COLOR_TARJETA, fg=COLOR_TEXTO_OSCURO).pack(pady=(24, 4))
+        volumen = tk.IntVar(value=round(configuracion.cargar_volumen() * 100))
+        etiqueta_valor = tk.Label(tarjeta, font=("Segoe UI", 15, "bold"), bg=COLOR_TARJETA, fg=COLOR_ACENTO)
+        etiqueta_valor.pack()
+
+        def actualizar_valor(_valor=None) -> None:
+            actual = volumen.get()
+            etiqueta_valor.config(text="Silenciado" if actual == 0 else f"{actual}%")
+
+        barra = tk.Scale(
+            tarjeta, from_=0, to=100, orient="horizontal", variable=volumen,
+            command=actualizar_valor, showvalue=False, length=280, resolution=1,
+            bg=COLOR_TARJETA, fg=COLOR_TEXTO_OSCURO, troughcolor="#D9CFBC",
+            activebackground=COLOR_ACENTO, highlightthickness=0,
+        )
+        barra.pack(pady=(4, 16))
+        actualizar_valor()
+
+        def guardar() -> None:
+            configuracion.guardar_volumen(volumen.get() / 100)
+            ventana.destroy()
+
+        crear_boton(tarjeta, "Guardar configuración", guardar, principal=True, fuente=("Segoe UI", 10, "bold")).pack(fill="x", padx=34, pady=(0, 24))
 
 
 def jugar_partida_grafica() -> None:
