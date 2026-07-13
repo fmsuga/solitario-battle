@@ -31,9 +31,10 @@ por una de por medio.
 ## Cómo jugar
 
 ```
-python3 main_grafico.py   # versión gráfica (recomendada)
-python3 main.py            # versión por consola
+python main.py
 ```
+
+La aplicación se juega exclusivamente mediante la interfaz gráfica.
 
 ## Récords mundiales
 

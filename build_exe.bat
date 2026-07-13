@@ -18,7 +18,7 @@ echo.
 echo [2/3] Limpiando compilaciones anteriores...
 rmdir /s /q build 2>nul
 rmdir /s /q dist 2>nul
-del /q SolitarioDeLasCincuentaCartas.spec 2>nul
+del /q SolitarioBattle.spec 2>nul
 
 echo.
 echo [3/3] Generando ejecutable...
@@ -31,7 +31,7 @@ python -m PyInstaller ^
     --paths src ^
     --add-data "assets/cartas_img;assets/cartas_img" ^
     --add-data "assets/sonidos;assets/sonidos" ^
-    main_grafico.py
+    main.py
 
 if errorlevel 1 goto :error
 

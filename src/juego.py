@@ -4,7 +4,7 @@ juego.py
 La clase Juego conoce el Mazo y el Tablero, y expone acciones que el
 JUGADOR pide: repartir la siguiente carta, o intentar una jugada en una
 posición que el jugador eligió. La clase no decide sola cuándo fusionar:
-eso lo dispara siempre el jugador (ver interfaz_consola.py).
+eso lo dispara siempre la interfaz gráfica.
 """
 
 from datetime import datetime

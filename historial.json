@@ -25,5 +25,14 @@
     "movimientos": 34,
     "pilas_finales": 6,
     "puntaje": 340
+  },
+  {
+    "jugador": "flojo",
+    "fecha": "2026-07-13 17:42",
+    "dificultad": "facil",
+    "duracion_segundos": 129,
+    "movimientos": 32,
+    "pilas_finales": 8,
+    "puntaje": 500
   }
 ]

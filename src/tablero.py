@@ -43,7 +43,7 @@ class Tablero:
     en el orden en que fueron apareciendo (de izquierda a derecha).
 
     Esta lista es una SECUENCIA ÚNICA y continua: no sabe nada de "filas".
-    Las filas son un detalle de cómo se muestra en pantalla (ver interfaz_consola.py).
+    Las filas son un detalle de cómo se muestra en pantalla.
     """
 
     def __init__(self):
