@@ -13,6 +13,7 @@ from cartas import CANTIDAD_CARTAS_EN_MAZO, Dificultad
 from imagenes_cartas import ALTO_CARTA, ANCHO_CARTA, cargar_imagen_carta, cargar_imagen_dorso
 from juego import Juego
 import puntuacion
+import records_online
 
 
 # Paleta: paño de mesa profundo, carbón y tonos cálidos de las cartas.
@@ -200,7 +201,7 @@ class VentanaJuego:
         self.etiqueta_mensaje.config(text=texto, fg=colores.get(tipo, COLOR_MUTED))
 
     def _on_rueda_mouse(self, evento: tk.Event) -> None:
-        if getattr(event, "delta", 0):
+        if getattr(evento, "delta", 0):
             self.canvas_principal.yview_scroll(int(-evento.delta / 120), "units")
 
     def _iniciar_reloj(self) -> None:
@@ -359,7 +360,11 @@ class VentanaJuego:
             messagebox.showinfo("Falta el nombre", "Escribí un nombre antes de guardar.")
             return
         puntuacion.guardar_puntaje(nombre, resumen)
-        messagebox.showinfo("Guardado", "Puntaje guardado en historial.json")
+        error_sincronizacion = records_online.enviar_record(nombre, resumen)
+        mensaje = "Puntaje guardado y publicado en el ranking mundial."
+        if error_sincronizacion:
+            mensaje = f"Puntaje guardado localmente. {error_sincronizacion}"
+        messagebox.showinfo("Guardado", mensaje)
 
     def _mostrar_selector_dificultad(self, al_elegir) -> None:
         for widget in self.marco_tablero.winfo_children():
@@ -431,7 +436,6 @@ class MenuPrincipal:
         crear_boton(tarjeta, "Récords", self._on_records, ancho=28).pack(padx=32, pady=5, fill="x")
         crear_boton(tarjeta, "Configuración", self._on_configuracion, ancho=28).pack(padx=32, pady=5, fill="x")
         crear_boton(tarjeta, "Salir", self.raiz.destroy, ancho=28).pack(padx=32, pady=(5, 30), fill="x")
-        tk.Label(self.marco, text="Arrastrá una pila sobre su vecina izquierda para jugar.", font=("Segoe UI", 9), bg=COLOR_MESA_OSCURO, fg=COLOR_MUTED).pack(pady=(22, 0))
 
     def _on_jugar(self) -> None:
         self.marco.destroy()
@@ -446,14 +450,40 @@ class MenuPrincipal:
         _centrar_ventana(ventana, 760, 560)
         tk.Label(ventana, text="SALÓN DE RÉCORDS", font=("Segoe UI", 11, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_DORADO).pack(pady=(28, 3))
         tk.Label(ventana, text="Mejores partidas", font=("Segoe UI", 24, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_TEXTO).pack()
-        historial = puntuacion.cargar_historial()
-        if historial:
-            self._dibujar_tabla_records(ventana, sorted(historial, key=lambda partida: partida["puntaje"], reverse=True)[:10])
-        else:
-            tk.Label(ventana, text="Todavía no hay partidas guardadas.\nTu próxima partida puede inaugurar la tabla.", font=FUENTE_SUBTITULO, bg=COLOR_MESA_OSCURO, fg=COLOR_MUTED, justify="center").pack(expand=True)
+        pestañas = tk.Frame(ventana, bg=COLOR_MESA_OSCURO)
+        pestañas.pack(pady=(16, 0))
+        contenido = tk.Frame(ventana, bg=COLOR_MESA_OSCURO)
+        contenido.pack(fill="both", expand=True)
+
+        def mostrar(tipo: str) -> None:
+            for widget in contenido.winfo_children():
+                widget.destroy()
+            globales = tipo == "global"
+            if globales:
+                records, error = records_online.obtener_records_globales()
+            else:
+                records, error = records_online.obtener_records_personales()
+                if error:
+                    records = puntuacion.cargar_historial()
+            records = puntuacion.ordenar_records(records)
+            boton_mundial.config(bg=COLOR_ACENTO if globales else COLOR_TARJETA, fg="white" if globales else COLOR_TEXTO_OSCURO)
+            boton_personal.config(bg=COLOR_ACENTO if not globales else COLOR_TARJETA, fg="white" if not globales else COLOR_TEXTO_OSCURO)
+            if records:
+                if not globales:
+                    tk.Label(contenido, text=f"ÍNDICE BATTLE · {puntuacion.indice_jugador(records)}", font=("Segoe UI", 9, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_DORADO).pack(pady=(10, 0))
+                self._dibujar_tabla_records(contenido, records[:10])
+            else:
+                texto = error or ("Todavía no tenés récords personales." if not globales else "El ranking mundial todavía está vacío.")
+                tk.Label(contenido, text=texto, font=FUENTE_SUBTITULO, bg=COLOR_MESA_OSCURO, fg=COLOR_MUTED, justify="center", wraplength=620).pack(expand=True)
+
+        boton_mundial = crear_boton(pestañas, "Récords mundiales", lambda: mostrar("global"), principal=True, fuente=("Segoe UI", 9, "bold"))
+        boton_mundial.pack(side="left", padx=(0, 5))
+        boton_personal = crear_boton(pestañas, "Mis récords", lambda: mostrar("personal"), fuente=("Segoe UI", 9, "bold"))
+        boton_personal.pack(side="left", padx=(5, 0))
+        mostrar("global")
         crear_boton(ventana, "Cerrar", ventana.destroy, principal=True, fuente=("Segoe UI", 9, "bold")).pack(pady=(8, 24))
 
-    def _dibujar_tabla_records(self, ventana: tk.Toplevel, mejores: list[dict]) -> None:
+    def _dibujar_tabla_records(self, ventana: tk.Widget, mejores: list[dict]) -> None:
         tabla = crear_tarjeta(ventana, fondo=COLOR_TARJETA, borde=COLOR_DORADO)
         tabla.pack(fill="both", expand=True, padx=36, pady=(20, 10))
         columnas = (("#", 4), ("Jugador", 16), ("Dificultad", 11), ("Puntaje", 10), ("Pilas", 7), ("Mov.", 7), ("Fecha", 13))
@@ -466,7 +496,10 @@ class MenuPrincipal:
             fondo = "#F4E7C4" if posicion == 1 else (COLOR_TARJETA if posicion % 2 else "#EFE8D9")
             fila = tk.Frame(tabla, bg=fondo)
             fila.pack(fill="x")
-            valores = (medallas.get(posicion, str(posicion)), partida["jugador"][:15], partida.get("dificultad", "-"), str(partida["puntaje"]), str(partida["pilas_finales"]), str(partida["movimientos"]), partida.get("fecha", "-"))
+            jugador = partida.get("jugador", partida.get("player_name", "-"))
+            duracion = puntuacion.formatear_duracion(int(partida.get("duracion_segundos", 0)))
+            fecha = partida.get("fecha", partida.get("played_at", "-"))
+            valores = (medallas.get(posicion, str(posicion)), jugador[:15], partida.get("dificultad", partida.get("difficulty", "-")), str(partida["puntaje"] if "puntaje" in partida else partida["score"]), str(partida["pilas_finales"]), str(partida["movimientos"] if "movimientos" in partida else partida["moves"]), f"{duracion} · {fecha[:10]}")
             for (_, ancho), valor in zip(columnas, valores):
                 tk.Label(fila, text=valor, width=ancho, anchor="w", font=("Segoe UI", 9), bg=fondo, fg=COLOR_TEXTO_OSCURO).pack(side="left", padx=2, pady=6)
 

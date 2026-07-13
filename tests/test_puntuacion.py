@@ -38,3 +38,19 @@ def test_guardar_y_cargar_historial(tmp_path, monkeypatch):
 
     mejor = puntuacion.mejor_puntaje()
     assert mejor["jugador"] == "Tester"
+
+
+def test_ranking_prioriza_puntaje_y_desempata_por_tiempo_y_movimientos():
+    partidas = [
+        {"puntaje": 2000, "duracion_segundos": 90, "movimientos": 8, "fecha": "2026-01-03"},
+        {"puntaje": 2000, "duracion_segundos": 70, "movimientos": 9, "fecha": "2026-01-02"},
+        {"puntaje": 2000, "duracion_segundos": 70, "movimientos": 7, "fecha": "2026-01-01"},
+        {"puntaje": 1900, "duracion_segundos": 10, "movimientos": 1, "fecha": "2026-01-01"},
+    ]
+
+    ordenadas = puntuacion.ordenar_records(partidas)
+
+    assert ordenadas[0]["movimientos"] == 7
+    assert ordenadas[1]["movimientos"] == 9
+    assert ordenadas[-1]["puntaje"] == 1900
+    assert puntuacion.indice_jugador(partidas) == 7900

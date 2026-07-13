@@ -12,6 +12,26 @@ from recursos import ruta_base_datos_usuario
 ARCHIVO_HISTORIAL = ruta_base_datos_usuario() / "historial.json"
 
 
+def clave_orden_record(partida: dict) -> tuple:
+    """Orden único de rankings: puntaje, tiempo, movimientos y fecha."""
+    return (
+        -int(partida.get("puntaje", partida.get("score", 0))),
+        int(partida.get("duracion_segundos", 0)),
+        int(partida.get("movimientos", 0)),
+        partida.get("fecha", partida.get("played_at", "")),
+    )
+
+
+def ordenar_records(partidas: list[dict]) -> list[dict]:
+    return sorted(partidas, key=clave_orden_record)
+
+
+def indice_jugador(partidas: list[dict]) -> int:
+    """Rating local basado en las cinco mejores partidas, no en partidas flojas."""
+    mejores = ordenar_records(partidas)[:5]
+    return sum(int(partida.get("puntaje", partida.get("score", 0))) for partida in mejores)
+
+
 def interpretar_resultado(pilas_finales: int) -> str:
     """
     Traduce la cantidad de pilas finales a una frase. Basado en la escala
@@ -64,4 +84,4 @@ def mejor_puntaje() -> dict | None:
     historial = cargar_historial()
     if not historial:
         return None
-    return max(historial, key=lambda partida: partida["puntaje"])
+    return ordenar_records(historial)[0]

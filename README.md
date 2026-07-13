@@ -1,4 +1,4 @@
-# Solitario Hunting
+# Solitario Battle
 
 Un solitario de mesa con mazo español, jugado por parejas: se reparte
 una carta a la vez y hay que "cazar" coincidencias entre pilas separadas
@@ -34,3 +34,19 @@ por una de por medio.
 python3 main_grafico.py   # versión gráfica (recomendada)
 python3 main.py            # versión por consola
 ```
+
+## Récords mundiales
+
+Los récords se guardan localmente y se sincronizan con Supabase cuando hay
+conexión. El ranking único ordena por puntaje; ante empate, gana quien tardó
+menos tiempo y, si sigue empatado, quien hizo menos movimientos.
+
+Antes de usar los récords globales por primera vez:
+
+1. Abrí el proyecto en Supabase y entrá a **SQL Editor**.
+2. Creá una consulta nueva, pegá el contenido de `supabase_schema.sql` y ejecutala.
+
+La aplicación utiliza una publishable key —apta para clientes móviles y de
+escritorio— y las políticas RLS del esquema restringen el acceso a lectura y
+publicación de partidas. Para una versión competitiva publicada se recomienda
+añadir Supabase Auth y una Edge Function que valide las partidas en el servidor.
