@@ -63,3 +63,38 @@ def test_ranking_prioriza_puntaje_y_desempata_por_tiempo_y_movimientos():
     assert ordenadas[1]["movimientos"] == 9
     assert ordenadas[-1]["puntaje"] == 1900
     assert puntuacion.indice_jugador(partidas) == 7900
+
+
+def test_analizar_progreso_separa_dificultades_y_prioriza_menos_pilas():
+    partidas = [
+        {"dificultad": "facil", "pilas_finales": 5, "puntaje": 800, "duracion_segundos": 100, "movimientos": 35, "fecha": "2026-01-01"},
+        {"dificultad": "facil", "pilas_finales": 3, "puntaje": 600, "duracion_segundos": 120, "movimientos": 37, "fecha": "2026-01-02"},
+        {"dificultad": "dificil", "pilas_finales": 2, "puntaje": 15000, "duracion_segundos": 200, "movimientos": 46, "fecha": "2026-01-03"},
+    ]
+
+    datos = puntuacion.analizar_progreso(partidas, "facil")
+
+    assert datos["partidas"] == 2
+    assert datos["mejor_resultado"]["pilas_finales"] == 3
+    assert datos["mejor_tiempo"]["pilas_finales"] == 3
+    assert datos["distribucion"] == {"2": 0, "3-4": 1, "5-7": 1, "8-10": 0, "11+": 0}
+
+
+def test_progreso_calcula_tendencia_solo_con_veinte_partidas():
+    partidas = [
+        {"dificultad": "facil", "pilas_finales": 10 if i < 10 else 6, "puntaje": i, "duracion_segundos": 60, "movimientos": 1, "fecha": f"2026-01-{i + 1:02d}"}
+        for i in range(20)
+    ]
+
+    datos = puntuacion.analizar_progreso(partidas, "facil")
+
+    assert datos["tendencia_pilas"] == 4.0
+    assert datos["mejor_promedio_reciente"] == 6.0
+
+
+def test_clasificacion_y_mensaje_de_comparacion():
+    anterior = [{"dificultad": "facil", "pilas_finales": 5, "puntaje": 400, "duracion_segundos": 90, "movimientos": 35, "fecha": "2026-01-01"}]
+    resumen = {"dificultad": "facil", "pilas_finales": 4, "puntaje": 500, "duracion_segundos": 100, "movimientos": 36}
+
+    assert puntuacion.clasificar_resultado(4) == "Excelente"
+    assert puntuacion.mensaje_comparacion(resumen, anterior) == "Nuevo mejor resultado personal."
