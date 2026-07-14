@@ -85,3 +85,9 @@ def mejor_puntaje() -> dict | None:
     if not historial:
         return None
     return ordenar_records(historial)[0]
+
+
+def es_nuevo_record(resumen: dict) -> bool:
+    """Indica si el resultado supera el mejor récord local anterior."""
+    mejor = mejor_puntaje()
+    return mejor is None or clave_orden_record(resumen) < clave_orden_record(mejor)

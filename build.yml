@@ -27,7 +27,7 @@ jobs:
 
       - name: Generar el .exe
         run: |
-          pyinstaller --onefile --windowed --clean --noupx --name SolitarioBattle --paths src --add-data "assets/cartas_img;assets/cartas_img" --add-data "assets/sonidos;assets/sonidos" main.py
+          pyinstaller --onefile --windowed --clean --noupx --name SolitarioBattle --paths src --add-data "assets/cartas_img;assets/cartas_img" --add-data "assets/sonidos;assets/sonidos" --add-data "assets/interfaz;assets/interfaz" main.py
 
       - name: Subir el .exe como resultado descargable
         uses: actions/upload-artifact@v4

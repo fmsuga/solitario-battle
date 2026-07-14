@@ -31,6 +31,7 @@ python -m PyInstaller ^
     --paths src ^
     --add-data "assets/cartas_img;assets/cartas_img" ^
     --add-data "assets/sonidos;assets/sonidos" ^
+    --add-data "assets/interfaz;assets/interfaz" ^
     main.py
 
 if errorlevel 1 goto :error

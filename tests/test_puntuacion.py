@@ -17,6 +17,15 @@ def test_interpretar_resultado_extremos():
     assert "próxima vez" in puntuacion.interpretar_resultado(30)
 
 
+def test_es_nuevo_record_compara_con_el_mejor_historial(tmp_path, monkeypatch):
+    archivo = tmp_path / "historial.json"
+    archivo.write_text('[{"puntaje": 300, "duracion_segundos": 100, "movimientos": 20, "fecha": "2026-01-01"}]', encoding="utf-8")
+    monkeypatch.setattr(puntuacion, "ARCHIVO_HISTORIAL", archivo)
+
+    assert puntuacion.es_nuevo_record({"puntaje": 320, "duracion_segundos": 120, "movimientos": 21, "fecha": "2026-01-02"})
+    assert not puntuacion.es_nuevo_record({"puntaje": 280, "duracion_segundos": 90, "movimientos": 18, "fecha": "2026-01-02"})
+
+
 def test_guardar_y_cargar_historial(tmp_path, monkeypatch):
     # uso un archivo temporal para no ensuciar el historial.json real
     archivo_temporal = tmp_path / "historial_test.json"

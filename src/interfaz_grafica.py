@@ -6,7 +6,13 @@ resultado usando una única identidad visual.
 """
 
 import math
+import random
 import tkinter as tk
+
+try:
+    from PIL import Image, ImageOps, ImageTk
+except ImportError:
+    Image = ImageOps = ImageTk = None
 
 try:
     from pygame import mixer
@@ -59,6 +65,66 @@ MARGEN_PANTALLA_Y = 100
 CARPETA_SONIDOS = ruta_base_recursos() / "assets" / "sonidos"
 SONIDO_REPARTIR = CARPETA_SONIDOS / "repartir.wav"
 SONIDO_MOVIMIENTO_EXITOSO = CARPETA_SONIDOS / "movimiento_exitoso.wav"
+RUTA_ORNAMENTO = ruta_base_recursos() / "assets" / "interfaz" / "ornamento_dorado.png"
+
+
+TEXTOS = {
+    "es": {
+        "choose_difficulty": "Elegí una dificultad", "moves": "MOVIMIENTOS", "time": "TIEMPO",
+        "surrender": "Rendirse", "finish": "Finalizar", "options": "Opciones",
+        "back_to_menu": "Volver al menú principal", "continue_game": "Continuar partida",
+        "game_menu": "MENÚ DE PARTIDA", "difficulty_menu": "MENÚ DE DIFICULTAD",
+        "choose_difficulty_title": "ELEGÍ LA DIFICULTAD", "difficulty_hint": "Las reglas son las mismas; cambia el tamaño del mazo.",
+        "classic": "Clásico", "hard": "Difícil", "easy": "Fácil", "cards": "cartas",
+        "valid_move": "¡Jugada válida! Buen ojo.", "invalid_move": "Ahí no hay ninguna coincidencia. Fijate de nuevo.",
+        "deck_empty": "Se acabaron las cartas. Si no ves más jugadas, terminá la partida.",
+        "new_game_hint": "Elegí la dificultad para arrancar de nuevo.", "game": "Partida",
+        "piles_on_table": "pilas en mesa", "sound": "Sonido del juego", "volume": "VOLUMEN",
+        "muted": "Silenciado", "language": "IDIOMA", "spanish": "Español", "english": "English",
+        "save_options": "Guardar opciones", "settings": "Configuración", "save_settings": "Guardar configuración",
+        "play": "Jugar", "records": "Récords", "quit": "Salir", "tagline": "Un juego de observación y estrategia",
+        "abandon_game": "Abandonar partida", "abandon_confirm": "¿Seguro que querés abandonar esta partida?\nNo se guardará el puntaje actual.",
+        "abandon": "Abandonar", "back_title": "Volver al menú", "back_confirm": "¿Querés volver al menú principal?\nLa partida actual no se guardará.",
+        "cancel": "Cancelar", "understood": "Entendido", "finish_game": "TERMINAR PARTIDA  ·  VER RESULTADO",
+        "game_finished": "PARTIDA TERMINADA", "your_result": "Tu mesa, tu resultado", "final_score": "PUNTAJE FINAL",
+        "final_piles": "pilas finales", "name_to_save": "Nombre para guardar el puntaje", "save_score": "Guardar puntaje",
+        "new_game": "Nueva partida", "main_menu": "Menú principal", "name_missing": "Falta el nombre",
+        "restart_game": "Reiniciar partida", "restart_confirm": "¿Querés reiniciar la partida actual?\nVas a volver a elegir la dificultad.",
+        "new_record": "¡NUEVO RÉCORD!",
+        "name_missing_message": "Escribí un nombre antes de guardar.", "score_saved": "Puntaje guardado",
+        "score_published": "Puntaje guardado y publicado en el ranking mundial.",
+    },
+    "en": {
+        "choose_difficulty": "Choose a difficulty", "moves": "MOVES", "time": "TIME",
+        "surrender": "Surrender", "finish": "Finish", "options": "Options",
+        "back_to_menu": "Back to main menu", "continue_game": "Continue game",
+        "game_menu": "GAME MENU", "difficulty_menu": "DIFFICULTY MENU",
+        "choose_difficulty_title": "CHOOSE A DIFFICULTY", "difficulty_hint": "The rules stay the same; only the deck size changes.",
+        "classic": "Classic", "hard": "Hard", "easy": "Easy", "cards": "cards",
+        "valid_move": "Valid move! Nice eye.", "invalid_move": "There is no match there. Try again.",
+        "deck_empty": "There are no cards left. Finish when you cannot find any more moves.",
+        "new_game_hint": "Choose a difficulty to start again.", "game": "Game",
+        "piles_on_table": "piles on the table", "sound": "Game sound", "volume": "VOLUME",
+        "muted": "Muted", "language": "LANGUAGE", "spanish": "Español", "english": "English",
+        "save_options": "Save options", "settings": "Settings", "save_settings": "Save settings",
+        "play": "Play", "records": "Records", "quit": "Quit", "tagline": "A game of observation and strategy",
+        "abandon_game": "Leave game", "abandon_confirm": "Are you sure you want to leave this game?\nYour current score will not be saved.",
+        "abandon": "Leave", "back_title": "Back to menu", "back_confirm": "Return to the main menu?\nYour current game will not be saved.",
+        "cancel": "Cancel", "understood": "Got it", "finish_game": "FINISH GAME  ·  VIEW RESULTS",
+        "game_finished": "GAME FINISHED", "your_result": "Your table, your result", "final_score": "FINAL SCORE",
+        "final_piles": "final piles", "name_to_save": "Name to save the score", "save_score": "Save score",
+        "new_game": "New game", "main_menu": "Main menu", "name_missing": "Name required",
+        "restart_game": "Restart game", "restart_confirm": "Restart the current game?\nYou will choose the difficulty again.",
+        "new_record": "NEW RECORD!",
+        "name_missing_message": "Enter a name before saving.", "score_saved": "Score saved",
+        "score_published": "Score saved and published to the global ranking.",
+    },
+}
+
+
+def t(clave: str) -> str:
+    """Texto de interfaz en el idioma elegido, con español como respaldo."""
+    return TEXTOS[configuracion.cargar_idioma()].get(clave, TEXTOS["es"].get(clave, clave))
 
 
 def _centrar_ventana(raiz: tk.Tk, ancho: int, alto: int) -> None:
@@ -109,6 +175,57 @@ def crear_boton(
 
 def crear_tarjeta(padre: tk.Widget, *, fondo: str = COLOR_PANEL_ELEVADO, borde: str = COLOR_BORDE) -> tk.Frame:
     return tk.Frame(padre, bg=fondo, highlightthickness=1, highlightbackground=borde)
+
+
+def crear_ornamento(padre: tk.Widget, *, invertido: bool = False) -> tk.Canvas:
+    """Carga el PNG ornamental y usa Canvas sólo mientras el asset no exista."""
+    if Image is not None and RUTA_ORNAMENTO.is_file():
+        with Image.open(RUTA_ORNAMENTO) as origen:
+            imagen = origen.convert("RGBA")
+        # El asset puede llegar como silueta negra; se conserva su alpha y
+        # se aplica el dorado de la interfaz al vuelo, sin perder detalle.
+        alfa = imagen.getchannel("A")
+        dorado = Image.new("RGBA", imagen.size, COLOR_DORADO)
+        dorado.putalpha(alfa)
+        imagen = dorado
+        imagen.thumbnail((82, 30), Image.Resampling.LANCZOS)
+        # El archivo original quedó ubicado al lado opuesto: el izquierdo
+        # se espeja y el derecho conserva la orientación del PNG.
+        if not invertido:
+            imagen = ImageOps.mirror(imagen)
+        foto = ImageTk.PhotoImage(imagen)
+        etiqueta = tk.Label(padre, image=foto, bg=COLOR_MESA_OSCURO, bd=0)
+        etiqueta.imagen = foto  # Mantiene la referencia viva para Tkinter.
+        return etiqueta
+
+    # Respaldo temporal para que la pantalla siga siendo correcta si falta
+    # el archivo, por ejemplo antes de que se agregue al repositorio.
+    ancho, alto = 82, 30
+    lienzo = tk.Canvas(padre, width=ancho, height=alto, bg=COLOR_MESA_OSCURO, highlightthickness=0)
+
+    def x(valor: int) -> int:
+        return ancho - valor if invertido else valor
+
+    oro, luz, sombra = COLOR_DORADO, "#F7DFA0", "#A97828"
+    # Tallo con doble curva y hojas finas: la silueta se mantiene pequeña,
+    # pero deja de leerse como una línea decorativa común.
+    lienzo.create_line(x(2), 16, x(19), 16, x(29), 20, x(39), 16, x(55), 16,
+                       fill=sombra, width=2, smooth=True)
+    lienzo.create_line(x(11), 16, x(25), 10, x(31), 5, x(38), 10, x(42), 16,
+                       fill=oro, width=1, smooth=True)
+    lienzo.create_line(x(21), 18, x(29), 25, x(37), 26, x(42), 17,
+                       fill=oro, width=1, smooth=True)
+    lienzo.create_polygon(x(28), 13, x(34), 3, x(40), 12, x(35), 16,
+                          fill=oro, outline=luz)
+    lienzo.create_polygon(x(31), 19, x(39), 27, x(45), 19, x(38), 17,
+                          fill="#C7983F", outline=luz)
+    # Remate de tres puntas que mira hacia el texto central.
+    lienzo.create_polygon(x(43), 16, x(54), 7, x(64), 16, x(54), 25,
+                          fill=oro, outline=luz)
+    lienzo.create_polygon(x(54), 16, x(69), 11, x(79), 16, x(69), 21,
+                          fill="#C7983F", outline=luz)
+    lienzo.create_oval(x(50) - 3, 13, x(50) + 3, 19, fill=luz, outline=sombra)
+    return lienzo
 
 
 class VentanaJuego:
@@ -174,52 +291,61 @@ class VentanaJuego:
         self.raiz.minsize(720, 600)
 
     def _crear_barra_superior(self) -> None:
-        barra = crear_tarjeta(self.marco_contenido, fondo=COLOR_PANEL, borde=COLOR_BORDE)
-        barra.pack(fill="x", padx=24, pady=(20, 0))
-        identidad = tk.Frame(barra, bg=COLOR_PANEL)
+        self.barra_superior = crear_tarjeta(self.marco_contenido, fondo=COLOR_PANEL, borde=COLOR_BORDE)
+        self.barra_superior.pack(fill="x", padx=24, pady=(20, 0))
+        identidad = tk.Frame(self.barra_superior, bg=COLOR_PANEL)
         identidad.pack(side="left", padx=18, pady=13)
         tk.Label(identidad, text="SOLITARIO BATTLE", font=("Segoe UI", 12, "bold"), bg=COLOR_PANEL, fg=COLOR_DORADO).pack(anchor="w")
-        self.etiqueta_mensaje = tk.Label(
-            barra, text="", font=("Segoe UI", 12, "bold"),
-            bg=COLOR_PANEL, fg=COLOR_PANEL,
-        )
-        self.etiqueta_mensaje.place(relx=0.34, rely=0.5, anchor="center")
-        self.etiqueta_info = tk.Label(identidad, text="Elegí una dificultad", font=("Segoe UI", 9), bg=COLOR_PANEL, fg=COLOR_MUTED)
+        self.etiqueta_info = tk.Label(identidad, text=t("choose_difficulty"), font=("Segoe UI", 9), bg=COLOR_PANEL, fg=COLOR_MUTED)
         self.etiqueta_info.pack(anchor="w", pady=(2, 0))
 
         # El bloque de estadísticas vive en la columna central, independiente
         # de los controles laterales: el cronómetro queda realmente centrado.
-        estadisticas = tk.Frame(barra, bg=COLOR_PANEL)
-        estadisticas.place(relx=0.5, rely=0.5, anchor="center")
-        self._crear_estadistica(estadisticas, "MOVIMIENTOS", "0", "movimientos")
-        self._crear_estadistica(estadisticas, "TIEMPO", "00:00", "tiempo")
+        self.estadisticas = tk.Frame(self.barra_superior, bg=COLOR_PANEL)
+        self.estadisticas.place(relx=0.5, rely=0.5, anchor="center")
+        self._crear_estadistica(self.estadisticas, t("moves"), "0", "movimientos")
+        self._crear_estadistica(self.estadisticas, t("time"), "00:00", "tiempo")
 
-        acciones = tk.Frame(barra, bg=COLOR_PANEL)
+        acciones = tk.Frame(self.barra_superior, bg=COLOR_PANEL)
         acciones.pack(side="right", padx=14, pady=10)
-        self._crear_boton_menu_partida(acciones).pack(side="right")
-        self.boton_accion = crear_boton(acciones, "Rendirse", self._on_accion_principal, principal=True, fuente=("Segoe UI", 9, "bold"))
-        self.boton_accion.pack(side="right", padx=(0, 8))
-
-    def _crear_boton_menu_partida(self, padre: tk.Widget) -> tk.Canvas:
-        """Ícono de menú propio, fijo en el extremo derecho del header."""
-        boton = tk.Canvas(
-            padre, width=34, height=34, bg=COLOR_PANEL_ELEVADO,
-            highlightthickness=1, highlightbackground=COLOR_BORDE, cursor="hand2",
+        self.boton_menu = crear_boton(acciones, "☰", self._abrir_menu_partida, ancho=3, fuente=("Segoe UI Symbol", 12, "bold"))
+        self.boton_menu.pack(side="right")
+        # Este contenedor se empaqueta antes del tablero para que los avisos
+        # nunca queden por debajo de las cartas ni compitan con el header.
+        self.marco_mensaje = tk.Frame(self.marco_contenido, bg=COLOR_MESA, height=58)
+        self.etiqueta_mensaje = tk.Label(
+            self.marco_mensaje, text="", font=("Segoe UI", 11, "bold"), justify="center",
+            wraplength=900, bg=COLOR_PANEL_ELEVADO, fg=COLOR_PANEL_ELEVADO, padx=20, pady=7,
         )
-        for y in (11, 17, 23):
-            boton.create_line(9, y, 25, y, fill=COLOR_DORADO, width=2)
-        boton.bind("<Button-1>", lambda _evento: self._abrir_menu_partida())
-        boton.bind("<Enter>", lambda _evento: boton.configure(bg=COLOR_BORDE))
-        boton.bind("<Leave>", lambda _evento: boton.configure(bg=COLOR_PANEL_ELEVADO))
-        return boton
+        self.etiqueta_mensaje.pack(fill="x", padx=80, pady=8)
+
+    def _establecer_contexto_header(self, en_partida: bool) -> None:
+        """Mantiene la identidad del header sin mostrar controles sin sentido."""
+        if en_partida:
+            self.estadisticas.place(relx=0.5, rely=0.5, anchor="center")
+            self.marco_mensaje.pack(fill="x", before=self.marco_tablero)
+            self.marco_mensaje.pack_propagate(False)
+        else:
+            self.estadisticas.place_forget()
+            self.marco_mensaje.pack_forget()
 
     def _crear_estadistica(self, padre: tk.Widget, titulo: str, valor: str, atributo: str) -> None:
         tarjeta = tk.Frame(padre, bg=COLOR_PANEL_ELEVADO, padx=12, pady=5)
         tarjeta.pack(side="right", padx=(0, 9))
-        tk.Label(tarjeta, text=titulo, font=("Segoe UI", 7, "bold"), bg=COLOR_PANEL_ELEVADO, fg=COLOR_MUTED).pack(anchor="e")
+        etiqueta_titulo = tk.Label(tarjeta, text=titulo, font=("Segoe UI", 7, "bold"), bg=COLOR_PANEL_ELEVADO, fg=COLOR_MUTED)
+        etiqueta_titulo.pack(anchor="e")
         etiqueta = tk.Label(tarjeta, text=valor, font=FUENTE_ESTADISTICA, bg=COLOR_PANEL_ELEVADO, fg=COLOR_TEXTO)
         etiqueta.pack(anchor="e")
         setattr(self, f"etiqueta_{atributo}", etiqueta)
+        setattr(self, f"etiqueta_titulo_{atributo}", etiqueta_titulo)
+
+    def _actualizar_idioma_visual(self) -> None:
+        self.etiqueta_titulo_movimientos.config(text=t("moves"))
+        self.etiqueta_titulo_tiempo.config(text=t("time"))
+        if self.juego is None:
+            self._mostrar_selector_dificultad(self._comenzar_partida)
+        else:
+            self._actualizar_pantalla()
 
     def _actualizar_scrollregion(self, _evento=None) -> None:
         self.canvas_principal.configure(scrollregion=self.canvas_principal.bbox("all"))
@@ -235,8 +361,8 @@ class VentanaJuego:
         """Muestra un aviso con una entrada suave y opcionalmente lo oculta."""
         colores = {"exito": COLOR_EXITO, "error": COLOR_ERROR, "info": COLOR_MUTED}
         color_final = colores.get(tipo, COLOR_MUTED)
-        fondo = COLOR_PANEL
-        texto_visible = "👍  Jugada válida, buen ojo." if tipo == "exito" else texto
+        fondo = COLOR_PANEL_ELEVADO
+        texto_visible = texto
         if self._id_ocultar_mensaje is not None:
             self.raiz.after_cancel(self._id_ocultar_mensaje)
             self._id_ocultar_mensaje = None
@@ -246,7 +372,7 @@ class VentanaJuego:
         self._fondo_mensaje = fondo
         self.etiqueta_mensaje.config(
             text=texto_visible, fg=fondo, bg=fondo,
-            font=("Segoe UI", 12, "bold"), padx=0, pady=0,
+            font=("Segoe UI", 11, "bold"), padx=20, pady=7,
             highlightthickness=0,
         )
 
@@ -285,8 +411,8 @@ class VentanaJuego:
                 self.raiz.after(28, lambda: desvanecer(paso + 1))
             else:
                 self.etiqueta_mensaje.config(
-                    text="", fg=COLOR_PANEL, bg=COLOR_PANEL, font=("Segoe UI", 12, "bold"),
-                    padx=0, pady=0, highlightthickness=0,
+                    text="", fg=COLOR_PANEL_ELEVADO, bg=COLOR_PANEL_ELEVADO, font=("Segoe UI", 11, "bold"),
+                    padx=20, pady=7, highlightthickness=0,
                 )
                 self._id_ocultar_mensaje = None
 
@@ -318,18 +444,18 @@ class VentanaJuego:
         self._actualizar_pantalla()
 
     def _on_accion_principal(self) -> None:
-        if self.juego is None or self.juego.esta_terminada():
+        if self.juego is None or self.juego.esta_terminada() or self.juego.quedan_cartas_en_mano():
             return
-        if self.juego.quedan_cartas_en_mano():
-            self._mostrar_dialogo_confirmacion(
-                "Abandonar partida",
-                "¿Seguro que querés abandonar esta partida?\nNo se guardará el puntaje actual.",
-                self._nueva_partida,
-                "Abandonar",
-            )
-        else:
-            self.juego.finalizar()
-            self._terminar_partida()
+        self.juego.finalizar()
+        self._terminar_partida()
+
+    def _confirmar_reinicio(self) -> None:
+        if self.juego is None or self.juego.esta_terminada():
+            self._nueva_partida()
+            return
+        self._mostrar_dialogo_confirmacion(
+            t("restart_game"), t("restart_confirm"), self._nueva_partida, t("restart_game"),
+        )
 
     def _confirmar_volver_menu(self) -> None:
         """Permite abandonar la partida en curso sin ocultar la salida al menú."""
@@ -337,38 +463,37 @@ class VentanaJuego:
             self._volver_al_menu()
             return
         self._mostrar_dialogo_confirmacion(
-            "Volver al menú",
-            "¿Querés volver al menú principal?\nLa partida actual no se guardará.",
+            t("back_title"), t("back_confirm"),
             self._volver_al_menu,
-            "Volver al menú",
+            t("back_to_menu"),
         )
 
     def _abrir_menu_partida(self) -> None:
-        """Panel propio de navegación, en lugar del menú nativo del sistema."""
+        """Menú breve y consistente para la partida o el selector."""
         ventana = tk.Toplevel(self.raiz)
-        ventana.title("Menú de partida")
+        en_partida = self.juego is not None
+        ventana.title(t("game_menu") if en_partida else t("difficulty_menu"))
         ventana.configure(bg=COLOR_MESA_OSCURO)
         ventana.resizable(False, False)
         ventana.transient(self.raiz)
-        _centrar_ventana(ventana, 380, 290)
+        _centrar_ventana(ventana, 360, 390 if en_partida else 310)
         panel = crear_tarjeta(ventana, fondo=COLOR_PANEL, borde=COLOR_DORADO)
         panel.pack(fill="both", expand=True, padx=20, pady=20)
-        tk.Label(panel, text="MENÚ DE PARTIDA", font=("Segoe UI", 11, "bold"), bg=COLOR_PANEL, fg=COLOR_DORADO).pack(pady=(25, 6))
-        tk.Label(panel, text="La mesa te espera.", font=("Segoe UI", 11), bg=COLOR_PANEL, fg=COLOR_MUTED).pack(pady=(0, 18))
+        contenido = tk.Frame(panel, bg=COLOR_PANEL)
+        contenido.pack(fill="both", expand=True, padx=30, pady=28)
+        tk.Label(contenido, text=t("game_menu") if en_partida else t("difficulty_menu"), font=("Segoe UI", 11, "bold"), bg=COLOR_PANEL, fg=COLOR_DORADO).pack(pady=(0, 16))
+        acciones_menu = tk.Frame(contenido, bg=COLOR_PANEL)
+        acciones_menu.pack(fill="x", expand=True)
 
         def boton_menu(texto: str, comando) -> None:
-            boton = tk.Button(
-                panel, text=texto, command=lambda: (ventana.destroy(), comando()),
-                font=("Segoe UI", 10, "bold"), bg=COLOR_PANEL_ELEVADO, fg=COLOR_TEXTO,
-                activebackground=COLOR_BORDE, activeforeground=COLOR_TEXTO,
-                relief="flat", bd=0, cursor="hand2", padx=16, pady=10,
-                highlightthickness=1, highlightbackground=COLOR_BORDE,
-            )
-            boton.pack(fill="x", padx=38, pady=4)
+            crear_boton(acciones_menu, texto, lambda: (ventana.destroy(), comando()), fuente=("Segoe UI", 10, "bold")).pack(fill="x", pady=5)
 
-        boton_menu("Opciones", self._on_configuracion)
-        boton_menu("Volver al menú principal", self._confirmar_volver_menu)
-        crear_boton(panel, "Continuar partida", ventana.destroy, fuente=("Segoe UI", 9, "bold")).pack(pady=(12, 22))
+        if en_partida:
+            crear_boton(acciones_menu, t("continue_game"), ventana.destroy, fuente=("Segoe UI", 10, "bold")).pack(fill="x", pady=5)
+        boton_menu(t("options"), self._on_configuracion)
+        if en_partida:
+            boton_menu(t("restart_game"), self._confirmar_reinicio)
+        boton_menu(t("back_to_menu"), self._confirmar_volver_menu)
         ventana.grab_set()
 
     # La interacción conserva exactamente el contrato original: se intenta la jugada desde la pila izquierda.
@@ -433,10 +558,10 @@ class VentanaJuego:
         if soltada_en_destino:
             if self.juego.intentar_jugada(destino):
                 self._reproducir_sonido(SONIDO_MOVIMIENTO_EXITOSO)
-                self._mostrar_mensaje("¡Jugada válida! Buen ojo.", "exito", duracion_ms=2300)
+                self._mostrar_mensaje(t("valid_move"), "exito", duracion_ms=2300)
                 self._actualizar_pantalla()
             else:
-                self._mostrar_mensaje("Ahí no hay ninguna coincidencia. Fijate de nuevo.", "error", duracion_ms=2300)
+                self._mostrar_mensaje(t("invalid_move"), "error", duracion_ms=2300)
                 boton.grid()
         else:
             # grid() sin argumentos recupera exactamente la celda que tenía
@@ -503,14 +628,13 @@ class VentanaJuego:
         filas = math.ceil((len(pilas) + 1) / self.columnas_tablero)
         for fila in range(filas):
             self.marco_tablero.grid_rowconfigure(fila, minsize=self.alto_carta, pad=GAP_CELDA // 2)
-        dificultad = "Fácil" if self.dificultad == Dificultad.FACIL else "Difícil"
-        self.etiqueta_info.config(text=f"Partida {dificultad}  ·  {len(pilas)} pilas en mesa")
+        dificultad = t("easy") if self.dificultad == Dificultad.FACIL else t("hard")
+        self.etiqueta_info.config(text=f"{t('game')} {dificultad}  ·  {len(pilas)} {t('piles_on_table')}")
         if cartas_restantes == 0 and not self.juego.esta_terminada():
             self.boton_mazo.config(state="disabled")
-            self.boton_accion.config(text="Finalizar")
             boton_final = crear_boton(
                 self.marco_tablero,
-                "TERMINAR PARTIDA  ·  VER RESULTADO",
+                t("finish_game"),
                 self._on_accion_principal,
                 principal=True,
                 fuente=("Segoe UI", 14, "bold"),
@@ -519,7 +643,7 @@ class VentanaJuego:
                 row=filas, column=0, columnspan=self.columnas_tablero,
                 pady=(26, 10), ipadx=26, ipady=5,
             )
-            self._mostrar_mensaje("Se acabaron las cartas. Si no ves más jugadas, terminá la partida.")
+            self._mostrar_mensaje(t("deck_empty"))
 
     def _crear_boton_carta(self, imagen, comando=None) -> tk.Button:
         boton = tk.Button(self.marco_tablero, image=imagen, command=comando, bg=COLOR_MESA, activebackground=COLOR_MESA, cursor="hand2", relief="flat", bd=0, highlightthickness=2, highlightbackground=COLOR_BORDE, highlightcolor=COLOR_DORADO)
@@ -544,36 +668,64 @@ class VentanaJuego:
 
     def _terminar_partida(self) -> None:
         self.boton_mazo.config(state="disabled")
-        self.boton_accion.config(state="disabled")
         resumen = self.juego.obtener_resumen()
         self._abrir_ventana_resumen(resumen, puntuacion.interpretar_resultado(resumen["pilas_finales"]), puntuacion.formatear_duracion(resumen["duracion_segundos"]))
 
     def _abrir_ventana_resumen(self, resumen: dict, interpretacion: str, duracion: str) -> None:
         ventana = tk.Toplevel(self.raiz)
-        ventana.title("Partida terminada")
+        ventana.title(t("game_finished").title())
         ventana.configure(bg=COLOR_MESA_OSCURO)
         ventana.resizable(False, False)
         ventana.transient(self.raiz)
         ventana.protocol("WM_DELETE_WINDOW", lambda: self._cerrar_resumen_y(ventana, self._volver_al_menu))
-        _centrar_ventana(ventana, 500, 610)
+        nuevo_record = puntuacion.es_nuevo_record(resumen)
+        _centrar_ventana(ventana, 500, 680 if nuevo_record else 610)
 
-        tk.Label(ventana, text="PARTIDA TERMINADA", font=("Segoe UI", 11, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_DORADO).pack(pady=(28, 4))
-        tk.Label(ventana, text="Tu mesa, tu resultado", font=("Segoe UI", 22, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_TEXTO).pack()
+        tk.Label(ventana, text=t("game_finished"), font=("Segoe UI", 11, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_DORADO).pack(pady=(28, 4))
+        tk.Label(ventana, text=t("your_result"), font=("Segoe UI", 22, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_TEXTO).pack()
+        if nuevo_record:
+            tk.Label(ventana, text=t("new_record"), font=("Segoe UI", 11, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_DORADO).pack(pady=(8, 0))
+            confeti = tk.Canvas(ventana, width=420, height=62, bg=COLOR_MESA_OSCURO, highlightthickness=0)
+            confeti.pack(pady=(0, 2))
+            self._animar_confeti(confeti)
         tarjeta = crear_tarjeta(ventana, fondo=COLOR_TARJETA, borde=COLOR_DORADO)
         tarjeta.pack(fill="both", expand=True, padx=34, pady=22)
-        tk.Label(tarjeta, text="PUNTAJE FINAL", font=("Segoe UI", 9, "bold"), bg=COLOR_TARJETA, fg="#60736B").pack(pady=(24, 0))
+        tk.Label(tarjeta, text=t("final_score"), font=("Segoe UI", 9, "bold"), bg=COLOR_TARJETA, fg="#60736B").pack(pady=(24, 0))
         tk.Label(tarjeta, text=str(resumen["puntaje"]), font=("Consolas", 38, "bold"), bg=COLOR_TARJETA, fg=COLOR_ACENTO).pack()
         tk.Label(tarjeta, text=interpretacion, font=("Segoe UI", 11, "bold"), bg=COLOR_TARJETA, fg=COLOR_TEXTO_OSCURO, wraplength=380, justify="center").pack(pady=(6, 12))
-        tk.Label(tarjeta, text=f"{resumen['pilas_finales']} pilas finales   ·   {resumen['movimientos']} movimientos   ·   {duracion}", font=("Segoe UI", 9), bg=COLOR_TARJETA, fg="#60736B").pack()
-        tk.Label(tarjeta, text="Nombre para guardar el puntaje", font=("Segoe UI", 9, "bold"), bg=COLOR_TARJETA, fg=COLOR_TEXTO_OSCURO).pack(pady=(22, 5))
+        tk.Label(tarjeta, text=f"{resumen['pilas_finales']} {t('final_piles')}   ·   {resumen['movimientos']} {t('moves').lower()}   ·   {duracion}", font=("Segoe UI", 9), bg=COLOR_TARJETA, fg="#60736B").pack()
+        tk.Label(tarjeta, text=t("name_to_save"), font=("Segoe UI", 9, "bold"), bg=COLOR_TARJETA, fg=COLOR_TEXTO_OSCURO).pack(pady=(22, 5))
         entrada = tk.Entry(tarjeta, justify="center", font=("Segoe UI", 11), relief="flat", highlightthickness=1, highlightbackground="#C9BFA6")
         entrada.pack(fill="x", padx=35, ipady=6, pady=(0, 12))
-        crear_boton(tarjeta, "Guardar puntaje", lambda: self._guardar(ventana, resumen, entrada), principal=True).pack(fill="x", padx=35)
+        crear_boton(tarjeta, t("save_score"), lambda: self._guardar(ventana, resumen, entrada), principal=True).pack(fill="x", padx=35)
         fila = tk.Frame(tarjeta, bg=COLOR_TARJETA)
         fila.pack(fill="x", padx=35, pady=(8, 24))
-        crear_boton(fila, "Nueva partida", lambda: self._cerrar_resumen_y(ventana, self._nueva_partida), principal=True, fuente=("Segoe UI", 9, "bold")).pack(side="left", expand=True, fill="x", padx=(0, 4))
-        crear_boton(fila, "Menú principal", lambda: self._cerrar_resumen_y(ventana, self._volver_al_menu), fuente=("Segoe UI", 9, "bold")).pack(side="left", expand=True, fill="x", padx=(4, 0))
+        crear_boton(fila, t("new_game"), lambda: self._cerrar_resumen_y(ventana, self._nueva_partida), principal=True, fuente=("Segoe UI", 9, "bold")).pack(side="left", expand=True, fill="x", padx=(0, 4))
+        crear_boton(fila, t("main_menu"), lambda: self._cerrar_resumen_y(ventana, self._volver_al_menu), fuente=("Segoe UI", 9, "bold")).pack(side="left", expand=True, fill="x", padx=(4, 0))
         ventana.grab_set()
+
+    def _animar_confeti(self, lienzo: tk.Canvas) -> None:
+        """Pequeña explosión de confeti para destacar un récord local nuevo."""
+        generador = random.Random(50)
+        particulas = []
+        colores = (COLOR_DORADO, "#F5D889", COLOR_ACENTO, "#B9E6A4", "#A8D7F5")
+        for _ in range(28):
+            x, y = 210, 34
+            item = lienzo.create_rectangle(x - 3, y - 2, x + 3, y + 2, fill=generador.choice(colores), outline="")
+            particulas.append((item, generador.uniform(-4.8, 4.8), generador.uniform(-5.4, -1.8)))
+
+        def animar(paso: int = 0) -> None:
+            try:
+                for indice, (item, velocidad_x, velocidad_y) in enumerate(particulas):
+                    lienzo.move(item, velocidad_x, velocidad_y + paso * 0.16)
+                    particulas[indice] = (item, velocidad_x, velocidad_y)
+                if paso < 30:
+                    lienzo.after(28, lambda: animar(paso + 1))
+            except tk.TclError:
+                # La ventana pudo cerrarse mientras la animación seguía activa.
+                return
+
+        animar()
 
     def _cerrar_resumen_y(self, ventana: tk.Toplevel, accion) -> None:
         ventana.destroy()
@@ -582,30 +734,32 @@ class VentanaJuego:
     def _guardar(self, ventana: tk.Toplevel, resumen: dict, entrada_nombre: tk.Entry) -> None:
         nombre = entrada_nombre.get().strip()
         if not nombre:
-            self._mostrar_dialogo_info("Falta el nombre", "Escribí un nombre antes de guardar.")
+            self._mostrar_dialogo_info(t("name_missing"), t("name_missing_message"))
             return
         puntuacion.guardar_puntaje(nombre, resumen)
         error_sincronizacion = records_online.enviar_record(nombre, resumen)
-        mensaje = "Puntaje guardado y publicado en el ranking mundial."
+        mensaje = t("score_published")
         if error_sincronizacion:
             mensaje = f"Puntaje guardado localmente. {error_sincronizacion}"
-        self._mostrar_dialogo_info("Puntaje guardado", mensaje)
+        self._mostrar_dialogo_info(t("score_saved"), mensaje)
         # Una misma partida sólo se puede guardar una vez. Al cerrar el
         # resumen volvemos al menú, desde donde el récord ya está disponible.
         self._cerrar_resumen_y(ventana, self._volver_al_menu)
 
     def _mostrar_selector_dificultad(self, al_elegir) -> None:
+        self._establecer_contexto_header(False)
+        self.etiqueta_info.config(text=t("choose_difficulty"))
         self.marco_tablero.pack_configure(anchor="center", padx=24)
         for widget in self.marco_tablero.winfo_children():
             widget.destroy()
         tarjeta = crear_tarjeta(self.marco_tablero, fondo=COLOR_PANEL, borde=COLOR_BORDE)
         tarjeta.pack(padx=20, pady=48)
-        tk.Label(tarjeta, text="ELEGÍ LA DIFICULTAD", font=("Segoe UI", 16, "bold"), bg=COLOR_PANEL, fg=COLOR_DORADO).pack(pady=(25, 4))
-        tk.Label(tarjeta, text="Las reglas son las mismas; cambia el tamaño del mazo.", font=("Segoe UI", 11), bg=COLOR_PANEL, fg=COLOR_MUTED).pack(pady=(6, 22))
+        tk.Label(tarjeta, text=t("choose_difficulty_title"), font=("Segoe UI", 16, "bold"), bg=COLOR_PANEL, fg=COLOR_DORADO).pack(pady=(25, 4))
+        tk.Label(tarjeta, text=t("difficulty_hint"), font=("Segoe UI", 11), bg=COLOR_PANEL, fg=COLOR_MUTED).pack(pady=(6, 22))
         opciones = tk.Frame(tarjeta, bg=COLOR_PANEL)
         opciones.pack(padx=30, pady=(0, 30))
-        self._crear_opcion_dificultad(opciones, "Clásico", "40 cartas", Dificultad.FACIL, al_elegir).pack(side="left", padx=(0, 10))
-        self._crear_opcion_dificultad(opciones, "Difícil", "48 cartas", Dificultad.DIFICIL, al_elegir).pack(side="left", padx=(10, 0))
+        self._crear_opcion_dificultad(opciones, t("classic"), f"40 {t('cards')}", Dificultad.FACIL, al_elegir).pack(side="left", padx=(0, 10))
+        self._crear_opcion_dificultad(opciones, t("hard"), f"48 {t('cards')}", Dificultad.DIFICIL, al_elegir).pack(side="left", padx=(10, 0))
 
     def _crear_opcion_dificultad(self, padre, titulo, cantidad, dificultad, al_elegir):
         """Selector clásico: un panel único con relieve estilo Win98."""
@@ -652,7 +806,7 @@ class VentanaJuego:
     def _comenzar_partida(self, dificultad: Dificultad) -> None:
         self.dificultad = dificultad
         self.juego = Juego(dificultad=dificultad)
-        self.boton_accion.config(text="Rendirse", state="normal")
+        self._establecer_contexto_header(True)
         self._actualizar_pantalla()
         self._iniciar_reloj()
 
@@ -662,10 +816,8 @@ class VentanaJuego:
             self._id_reloj = None
         self.juego = None
         self._cache_imagenes.clear()
-        self.boton_accion.config(text="Rendirse", state="normal")
-        self.etiqueta_info.config(text="Elegí una dificultad")
+        self.etiqueta_info.config(text=t("choose_difficulty"))
         self._actualizar_reloj_visual(0, 0)
-        self._mostrar_mensaje("Elegí la dificultad para arrancar de nuevo.")
         self._mostrar_selector_dificultad(self._comenzar_partida)
 
     def _volver_al_menu(self) -> None:
@@ -685,7 +837,7 @@ class VentanaJuego:
         ventana = self._crear_dialogo(titulo, texto)
         acciones = tk.Frame(ventana._tarjeta_dialogo, bg=COLOR_TARJETA)
         acciones.pack(fill="x", padx=32, pady=(4, 28))
-        crear_boton(acciones, "Cancelar", ventana.destroy, fuente=("Segoe UI", 10, "bold")).pack(side="left", expand=True, fill="x", padx=(0, 5))
+        crear_boton(acciones, t("cancel"), ventana.destroy, fuente=("Segoe UI", 10, "bold")).pack(side="left", expand=True, fill="x", padx=(0, 5))
         crear_boton(
             acciones, texto_confirmar,
             lambda: (ventana.destroy(), al_confirmar()),
@@ -695,7 +847,7 @@ class VentanaJuego:
     def _mostrar_dialogo_info(self, titulo: str, texto: str) -> None:
         ventana = self._crear_dialogo(titulo, texto)
         crear_boton(
-            ventana._tarjeta_dialogo, "Entendido", ventana.destroy,
+            ventana._tarjeta_dialogo, t("understood"), ventana.destroy,
             principal=True, fuente=("Segoe UI", 10, "bold"),
         ).pack(fill="x", padx=32, pady=(4, 28))
 
@@ -718,33 +870,40 @@ class VentanaJuego:
     def _on_configuracion(self) -> None:
         """Acceso a ajustes durante la partida, como en un menú de pausa."""
         ventana = tk.Toplevel(self.raiz)
-        ventana.title("Opciones")
+        ventana.title(t("options"))
         ventana.configure(bg=COLOR_MESA_OSCURO)
         ventana.resizable(False, False)
         ventana.transient(self.raiz)
-        _centrar_ventana(ventana, 460, 330)
-        tk.Label(ventana, text="OPCIONES", font=("Segoe UI", 10, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_DORADO).pack(pady=(30, 5))
-        tk.Label(ventana, text="Sonido del juego", font=("Segoe UI", 22, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_TEXTO).pack()
+        _centrar_ventana(ventana, 460, 430)
+        tk.Label(ventana, text=t("options").upper(), font=("Segoe UI", 10, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_DORADO).pack(pady=(24, 5))
+        tk.Label(ventana, text=t("sound"), font=("Segoe UI", 22, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_TEXTO).pack()
         tarjeta = crear_tarjeta(ventana, fondo=COLOR_TARJETA, borde=COLOR_DORADO)
         tarjeta.pack(fill="both", expand=True, padx=36, pady=(20, 30))
-        tk.Label(tarjeta, text="VOLUMEN", font=("Segoe UI", 9, "bold"), bg=COLOR_TARJETA, fg=COLOR_TEXTO_OSCURO).pack(pady=(24, 4))
+        tk.Label(tarjeta, text=t("volume"), font=("Segoe UI", 9, "bold"), bg=COLOR_TARJETA, fg=COLOR_TEXTO_OSCURO).pack(pady=(20, 4))
         volumen = tk.IntVar(value=round(configuracion.cargar_volumen() * 100))
         etiqueta_valor = tk.Label(tarjeta, font=("Segoe UI", 15, "bold"), bg=COLOR_TARJETA, fg=COLOR_ACENTO)
         etiqueta_valor.pack()
 
         def actualizar_valor(_valor=None) -> None:
             actual = volumen.get()
-            etiqueta_valor.config(text="Silenciado" if actual == 0 else f"{actual}%")
+            etiqueta_valor.config(text=t("muted") if actual == 0 else f"{actual}%")
 
         barra = tk.Scale(tarjeta, from_=0, to=100, orient="horizontal", variable=volumen,
             command=actualizar_valor, showvalue=False, length=280, resolution=1,
             bg=COLOR_TARJETA, fg=COLOR_TEXTO_OSCURO, troughcolor="#D9CFBC",
             activebackground=COLOR_ACENTO, highlightthickness=0)
-        barra.pack(pady=(4, 16))
+        barra.pack(pady=(4, 14))
         actualizar_valor()
+        tk.Label(tarjeta, text=t("language"), font=("Segoe UI", 9, "bold"), bg=COLOR_TARJETA, fg=COLOR_TEXTO_OSCURO).pack(pady=(0, 4))
+        idiomas = {t("spanish"): "es", t("english"): "en"}
+        idioma = tk.StringVar(value=t("spanish") if configuracion.cargar_idioma() == "es" else t("english"))
+        selector_idioma = tk.OptionMenu(tarjeta, idioma, *idiomas)
+        selector_idioma.configure(font=("Segoe UI", 10), bg=COLOR_TARJETA, fg=COLOR_TEXTO_OSCURO, activebackground=COLOR_TARJETA_HOVER, relief="flat", highlightthickness=1, highlightbackground="#C9BFA6", width=18)
+        selector_idioma["menu"].configure(font=("Segoe UI", 10))
+        selector_idioma.pack(pady=(0, 14))
         crear_boton(
-            tarjeta, "Guardar opciones",
-            lambda: (configuracion.guardar_volumen(volumen.get() / 100), ventana.destroy()),
+            tarjeta, t("save_options"),
+            lambda: (configuracion.guardar_volumen(volumen.get() / 100), configuracion.guardar_idioma(idiomas[idioma.get()]), ventana.destroy(), self._actualizar_idioma_visual()),
             principal=True, fuente=("Segoe UI", 10, "bold"),
         ).pack(fill="x", padx=34, pady=(0, 24))
 
@@ -764,19 +923,23 @@ class MenuPrincipal:
         tk.Label(self.marco, text="♠  ♥  ♦  ♣", font=("Segoe UI Symbol", 18, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_DORADO).pack(pady=(68, 10))
         tk.Label(self.marco, text="SOLITARIO\nBATTLE", font=("Segoe UI", 34, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_TEXTO, justify="center").pack()
         lema = tk.Frame(self.marco, bg=COLOR_MESA_OSCURO)
-        lema.pack(pady=(15, 34))
-        tk.Frame(lema, bg=COLOR_DORADO, height=1, width=48).pack(side="left", padx=(0, 12))
+        lema.pack(pady=(15, 8))
+        crear_ornamento(lema).pack(side="left", padx=(0, 12))
         tk.Label(
-            lema, text="Un juego de observación y estrategia",
-            font=("Georgia", 12, "italic"), bg=COLOR_MESA_OSCURO, fg=COLOR_DORADO,
+            lema, text=t("tagline"),
+            font=("Georgia", 14, "italic"), bg=COLOR_MESA_OSCURO, fg=COLOR_DORADO,
         ).pack(side="left")
-        tk.Frame(lema, bg=COLOR_DORADO, height=1, width=48).pack(side="left", padx=(12, 0))
+        crear_ornamento(lema, invertido=True).pack(side="left", padx=(12, 0))
+        tk.Label(
+            self.marco, text="v1.0", font=("Segoe UI", 8),
+            bg=COLOR_MESA_OSCURO, fg="#8CA79A",
+        ).pack(pady=(0, 24))
         tarjeta = crear_tarjeta(self.marco, fondo=COLOR_PANEL, borde=COLOR_BORDE)
         tarjeta.pack(padx=20)
-        crear_boton(tarjeta, "Jugar", self._on_jugar, principal=True, ancho=28, fuente=("Segoe UI", 14, "bold")).pack(padx=32, pady=(30, 10), fill="x")
-        crear_boton(tarjeta, "Récords", self._on_records, ancho=28).pack(padx=32, pady=5, fill="x")
-        crear_boton(tarjeta, "Configuración", self._on_configuracion, ancho=28).pack(padx=32, pady=5, fill="x")
-        crear_boton(tarjeta, "Salir", self.raiz.destroy, ancho=28).pack(padx=32, pady=(5, 30), fill="x")
+        crear_boton(tarjeta, t("play"), self._on_jugar, principal=True, ancho=28, fuente=("Segoe UI", 14, "bold")).pack(padx=32, pady=(30, 10), fill="x")
+        crear_boton(tarjeta, t("records"), self._on_records, ancho=28).pack(padx=32, pady=5, fill="x")
+        crear_boton(tarjeta, t("settings"), self._on_configuracion, ancho=28).pack(padx=32, pady=5, fill="x")
+        crear_boton(tarjeta, t("quit"), self.raiz.destroy, ancho=28).pack(padx=32, pady=(5, 30), fill="x")
 
     def _on_jugar(self) -> None:
         self.marco.destroy()
@@ -846,25 +1009,25 @@ class MenuPrincipal:
 
     def _on_configuracion(self) -> None:
         ventana = tk.Toplevel(self.raiz)
-        ventana.title("Configuración")
+        ventana.title(t("settings"))
         ventana.configure(bg=COLOR_MESA_OSCURO)
         ventana.resizable(False, False)
         ventana.transient(self.raiz)
-        _centrar_ventana(ventana, 460, 330)
+        _centrar_ventana(ventana, 460, 430)
 
-        tk.Label(ventana, text="CONFIGURACIÓN", font=("Segoe UI", 10, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_DORADO).pack(pady=(30, 5))
-        tk.Label(ventana, text="Sonido del juego", font=("Segoe UI", 22, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_TEXTO).pack()
+        tk.Label(ventana, text=t("settings").upper(), font=("Segoe UI", 10, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_DORADO).pack(pady=(24, 5))
+        tk.Label(ventana, text=t("sound"), font=("Segoe UI", 22, "bold"), bg=COLOR_MESA_OSCURO, fg=COLOR_TEXTO).pack()
         tarjeta = crear_tarjeta(ventana, fondo=COLOR_TARJETA, borde=COLOR_DORADO)
         tarjeta.pack(fill="both", expand=True, padx=36, pady=(20, 30))
 
-        tk.Label(tarjeta, text="VOLUMEN", font=("Segoe UI", 9, "bold"), bg=COLOR_TARJETA, fg=COLOR_TEXTO_OSCURO).pack(pady=(24, 4))
+        tk.Label(tarjeta, text=t("volume"), font=("Segoe UI", 9, "bold"), bg=COLOR_TARJETA, fg=COLOR_TEXTO_OSCURO).pack(pady=(20, 4))
         volumen = tk.IntVar(value=round(configuracion.cargar_volumen() * 100))
         etiqueta_valor = tk.Label(tarjeta, font=("Segoe UI", 15, "bold"), bg=COLOR_TARJETA, fg=COLOR_ACENTO)
         etiqueta_valor.pack()
 
         def actualizar_valor(_valor=None) -> None:
             actual = volumen.get()
-            etiqueta_valor.config(text="Silenciado" if actual == 0 else f"{actual}%")
+            etiqueta_valor.config(text=t("muted") if actual == 0 else f"{actual}%")
 
         barra = tk.Scale(
             tarjeta, from_=0, to=100, orient="horizontal", variable=volumen,
@@ -872,14 +1035,26 @@ class MenuPrincipal:
             bg=COLOR_TARJETA, fg=COLOR_TEXTO_OSCURO, troughcolor="#D9CFBC",
             activebackground=COLOR_ACENTO, highlightthickness=0,
         )
-        barra.pack(pady=(4, 16))
+        barra.pack(pady=(4, 14))
         actualizar_valor()
+        tk.Label(tarjeta, text=t("language"), font=("Segoe UI", 9, "bold"), bg=COLOR_TARJETA, fg=COLOR_TEXTO_OSCURO).pack(pady=(0, 4))
+        idiomas = {t("spanish"): "es", t("english"): "en"}
+        idioma = tk.StringVar(value=t("spanish") if configuracion.cargar_idioma() == "es" else t("english"))
+        selector_idioma = tk.OptionMenu(tarjeta, idioma, *idiomas)
+        selector_idioma.configure(font=("Segoe UI", 10), bg=COLOR_TARJETA, fg=COLOR_TEXTO_OSCURO, activebackground=COLOR_TARJETA_HOVER, relief="flat", highlightthickness=1, highlightbackground="#C9BFA6", width=18)
+        selector_idioma["menu"].configure(font=("Segoe UI", 10))
+        selector_idioma.pack(pady=(0, 14))
 
         def guardar() -> None:
             configuracion.guardar_volumen(volumen.get() / 100)
+            configuracion.guardar_idioma(idiomas[idioma.get()])
             ventana.destroy()
+            self.marco.destroy()
+            self.marco = tk.Frame(self.raiz, bg=COLOR_MESA_OSCURO)
+            self.marco.pack(fill="both", expand=True)
+            self._crear_vista()
 
-        crear_boton(tarjeta, "Guardar configuración", guardar, principal=True, fuente=("Segoe UI", 10, "bold")).pack(fill="x", padx=34, pady=(0, 24))
+        crear_boton(tarjeta, t("save_settings"), guardar, principal=True, fuente=("Segoe UI", 10, "bold")).pack(fill="x", padx=34, pady=(0, 24))
 
 
 def jugar_partida_grafica() -> None:
