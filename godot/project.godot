@@ -1,27 +1,36 @@
-; Solitario Battle — proyecto móvil Godot 4.
-; La lógica se porta y prueba antes de agregar escenas o interfaz.
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
 config_version=5
+
+[animation]
+
+compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 [application]
 
 config/name="Solitario Battle"
-config/features=PackedStringArray("4.0", "Mobile")
+run/main_scene="res://scenes/tablero.tscn"
+config/features=PackedStringArray("4.7", "Mobile")
+
+[display]
+
+window/size/viewport_width=1080
+window/size/viewport_height=1920
+window/size/window_width_override=540
+window/size/window_height_override=960
+window/stretch/mode="canvas_items"
 
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg")
 
-[display]
-
-[display/window]
-size/viewport_width=1080
-size/viewport_height=1920
-size/window_width_override=540
-size/window_height_override=960
-stretch/mode="canvas_items"
-
 [rendering]
 
 renderer/rendering_method="mobile"
-renderer/rendering_method.mobile="mobile"
-textures/default_filters/use_nearest_mipmap_filter=false
+textures/vram_compression/import_etc2_astc=true

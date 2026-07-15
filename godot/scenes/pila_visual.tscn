@@ -1,0 +1,74 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/pila_visual.gd" id="1_pila"]
+
+[node name="PilaVisual" type="Button"]
+custom_minimum_size = Vector2(210, 150)
+layout_mode = 0
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 22
+flat = true
+script = ExtResource("1_pila")
+
+[node name="Fondo" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.12, 0.25, 0.39, 1)
+
+[node name="Borde" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.82, 0.71, 0.32, 1)
+
+[node name="Interior" type="ColorRect" parent="Borde"]
+layout_mode = 1
+anchors_preset = 15
+anchor_left = 0.035
+anchor_top = 0.035
+anchor_right = 0.965
+anchor_bottom = 0.965
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.12, 0.25, 0.39, 1)
+
+[node name="Carta" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 0.68
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_font_sizes/font_size = 24
+text = "Carta"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="Cantidad" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_top = 0.62
+anchor_right = 1.0
+anchor_bottom = 0.95
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.68, 0.84, 0.95, 1)
+theme_override_font_sizes/font_size = 19
+text = "x1"
+horizontal_alignment = 1
+vertical_alignment = 1
