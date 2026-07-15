@@ -1,0 +1,27 @@
+; Solitario Battle — proyecto móvil Godot 4.
+; La lógica se porta y prueba antes de agregar escenas o interfaz.
+config_version=5
+
+[application]
+
+config/name="Solitario Battle"
+config/features=PackedStringArray("4.0", "Mobile")
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/gut/plugin.cfg")
+
+[display]
+
+[display/window]
+size/viewport_width=1080
+size/viewport_height=1920
+size/window_width_override=540
+size/window_height_override=960
+stretch/mode="canvas_items"
+
+[rendering]
+
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+textures/default_filters/use_nearest_mipmap_filter=false
