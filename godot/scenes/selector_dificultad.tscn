@@ -1,0 +1,83 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/selector_dificultad.gd" id="1_selector"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tarjeta"]
+bg_color = Color(0.0627, 0.1725, 0.1451, 1)
+content_margin_left = 44.0
+content_margin_top = 36.0
+content_margin_right = 44.0
+content_margin_bottom = 36.0
+
+[node name="SelectorDificultad" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_selector")
+
+[node name="Fondo" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0235, 0.1647, 0.1255, 1)
+
+[node name="Centro" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Columna" type="VBoxContainer" parent="Centro"]
+layout_mode = 2
+theme_override_constants/separation = 28
+alignment = 1
+
+[node name="Titulo" type="Label" parent="Centro/Columna"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_font_sizes/font_size = 36
+text = "¿Con qué dificultad
+querés jugar?"
+horizontal_alignment = 1
+
+[node name="Tarjeta" type="PanelContainer" parent="Centro/Columna"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_tarjeta")
+
+[node name="Botones" type="VBoxContainer" parent="Centro/Columna/Tarjeta"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Facil" type="Button" parent="Centro/Columna/Tarjeta/Botones"]
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_font_sizes/font_size = 28
+text = "Fácil
+40 cartas"
+
+[node name="Dificil" type="Button" parent="Centro/Columna/Tarjeta/Botones"]
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_font_sizes/font_size = 28
+text = "Difícil
+48 cartas"
+
+[node name="Volver" type="Button" parent="Centro/Columna"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.549, 0.655, 0.604, 1)
+theme_override_font_sizes/font_size = 20
+text = "Volver"

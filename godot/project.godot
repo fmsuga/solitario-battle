@@ -18,6 +18,10 @@ config/name="Solitario Battle"
 run/main_scene="res://scenes/menu_principal.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 
+[autoload]
+
+EstadoJuego="*uid://qope44qrfxsl"
+
 [display]
 
 window/size/viewport_width=1080

@@ -68,7 +68,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_menu")
-tamano_palos = 200.0
 
 [node name="Fondo" type="ColorRect" parent="." unique_id=2118099792]
 layout_mode = 1
@@ -107,28 +106,28 @@ theme_override_constants/separation = 16
 alignment = 1
 
 [node name="Oros" type="TextureRect" parent="Centro/Columna/Encabezado/Palos" unique_id=1829733250]
-custom_minimum_size = Vector2(250, 265)
+custom_minimum_size = Vector2(200, 200)
 layout_mode = 2
 texture = ExtResource("2_oros")
 expand_mode = 1
 stretch_mode = 5
 
 [node name="Copas" type="TextureRect" parent="Centro/Columna/Encabezado/Palos" unique_id=268720944]
-custom_minimum_size = Vector2(250, 265)
+custom_minimum_size = Vector2(200, 200)
 layout_mode = 2
 texture = ExtResource("3_copas")
 expand_mode = 1
 stretch_mode = 5
 
 [node name="Espadas" type="TextureRect" parent="Centro/Columna/Encabezado/Palos" unique_id=379329007]
-custom_minimum_size = Vector2(250, 265)
+custom_minimum_size = Vector2(200, 200)
 layout_mode = 2
 texture = ExtResource("4_espadas")
 expand_mode = 1
 stretch_mode = 5
 
 [node name="Bastos" type="TextureRect" parent="Centro/Columna/Encabezado/Palos" unique_id=1053304750]
-custom_minimum_size = Vector2(250, 265)
+custom_minimum_size = Vector2(200, 200)
 layout_mode = 2
 texture = ExtResource("5_bastos")
 expand_mode = 1
@@ -191,7 +190,7 @@ stretch_mode = 5
 [node name="Version" type="Label" parent="Centro/Columna/Info" unique_id=1710831701]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.549, 0.655, 0.604, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 24
 text = "v0.5 mobile"
 horizontal_alignment = 1
 
