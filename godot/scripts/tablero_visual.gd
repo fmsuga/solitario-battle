@@ -8,7 +8,7 @@ extends Control
 const ESCENA_PILA := preload("res://scenes/pila_visual.tscn")
 
 @onready var grilla_pilas: GridContainer = $Margen/Columna/TableroScroll/Centro/Pilas
-@onready var boton_mazo: Button = $Margen/Columna/Mazo
+@onready var boton_mazo: MazoVisual = $Margen/Columna/Mazo
 @onready var boton_finalizar: Button = $Margen/Columna/Finalizar
 @onready var estado_label: Label = $Margen/Columna/Estado
 @onready var mensaje_label: Label = $Margen/Columna/Mensaje
@@ -87,7 +87,7 @@ func _refrescar_tablero() -> void:
 	var cartas_restantes := juego.mazo.quedan_cartas()
 	estado_label.text = "Pilas: %d | Cartas en mazo: %d" % [juego.tablero.cantidad_pilas(), cartas_restantes]
 	boton_mazo.disabled = juego.esta_terminada() or cartas_restantes == 0
-	boton_mazo.text = "Mazo vacío" if cartas_restantes == 0 else "Repartir carta (%d)" % cartas_restantes
+	boton_mazo.mostrar_cantidad(cartas_restantes)
 	boton_finalizar.visible = cartas_restantes == 0 and not juego.esta_terminada()
 
 

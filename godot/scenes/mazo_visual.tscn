@@ -1,0 +1,73 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/mazo_visual.gd" id="1_mazo"]
+[ext_resource type="Texture2D" path="res://assets/cartas_img/dorso.png" id="2_dorso"]
+
+[node name="MazoVisual" type="Button"]
+custom_minimum_size = Vector2(170, 261)
+layout_mode = 0
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 22
+flat = true
+script = ExtResource("1_mazo")
+
+[node name="Fondo" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.12, 0.25, 0.39, 1)
+
+[node name="Borde" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.82, 0.71, 0.32, 1)
+
+[node name="Imagen" type="TextureRect" parent="Borde"]
+layout_mode = 1
+anchors_preset = 15
+anchor_left = 0.035
+anchor_top = 0.035
+anchor_right = 0.965
+anchor_bottom = 0.965
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_dorso")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="FondoContador" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 0.86
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+color = Color(0.0627, 0.1725, 0.1451, 0.82)
+
+[node name="Cantidad" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 0.86
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_font_sizes/font_size = 22
+text = "x40"
+horizontal_alignment = 1
+vertical_alignment = 1
