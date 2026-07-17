@@ -19,7 +19,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.035, 0.09, 0.14, 1)
+color = Color(0.0235, 0.1647, 0.1255, 1)
 
 [node name="Margen" type="MarginContainer" parent="." unique_id=732849457]
 layout_mode = 1
@@ -68,12 +68,16 @@ layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="Pilas" type="GridContainer" parent="Margen/Columna/TableroScroll" unique_id=1264532003]
+[node name="Centro" type="CenterContainer" parent="Margen/Columna/TableroScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Pilas" type="GridContainer" parent="Margen/Columna/TableroScroll/Centro" unique_id=1264532003]
+layout_mode = 2
 theme_override_constants/h_separation = 16
 theme_override_constants/v_separation = 16
-columns = 4
+columns = 5
 
 [node name="Mazo" type="Button" parent="Margen/Columna" unique_id=482949425]
 custom_minimum_size = Vector2(0, 100)
@@ -82,3 +86,11 @@ theme_override_colors/font_color = Color(0.04, 0.1, 0.15, 1)
 theme_override_colors/font_hover_color = Color(0.04, 0.1, 0.15, 1)
 theme_override_font_sizes/font_size = 28
 text = "Repartir carta"
+
+[node name="Finalizar" type="Button" parent="Margen/Columna"]
+visible = false
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_font_sizes/font_size = 24
+text = "Terminar partida"

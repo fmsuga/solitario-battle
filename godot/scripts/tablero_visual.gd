@@ -1,20 +1,25 @@
 extends Control
 
-## Capa de interacción de la Fase 2. No altera las reglas ni el estado puro.
+## Capa de interacción. No altera las reglas ni el estado puro.
+## Terminar la partida es SIEMPRE decisión del jugador: el motor no
+## fuerza el fin solo porque detecte una jugada posible, porque
+## encontrar la coincidencia es la habilidad del juego (ver reglas.gd).
 
 const ESCENA_PILA := preload("res://scenes/pila_visual.tscn")
 
-@onready var grilla_pilas: GridContainer = $Margen/Columna/TableroScroll/Pilas
+@onready var grilla_pilas: GridContainer = $Margen/Columna/TableroScroll/Centro/Pilas
 @onready var boton_mazo: Button = $Margen/Columna/Mazo
+@onready var boton_finalizar: Button = $Margen/Columna/Finalizar
 @onready var estado_label: Label = $Margen/Columna/Estado
 @onready var mensaje_label: Label = $Margen/Columna/Mensaje
 
-var juego := Juego.new()
+var juego := Juego.new(Carta.Dificultad.FACIL)
 var indice_seleccionado := -1
 
 
 func _ready() -> void:
 	boton_mazo.pressed.connect(_al_tocar_mazo)
+	boton_finalizar.pressed.connect(_al_tocar_finalizar)
 	_refrescar_tablero()
 
 
@@ -22,7 +27,6 @@ func _al_tocar_mazo() -> void:
 	if juego.esta_terminada():
 		return
 	if not juego.quedan_cartas_en_mano():
-		_verificar_fin_de_partida()
 		return
 
 	juego.repartir_carta()
@@ -59,6 +63,17 @@ func _al_tocar_pila(indice: int) -> void:
 	_verificar_fin_de_partida()
 
 
+func _al_tocar_finalizar() -> void:
+	if juego.esta_terminada() or juego.quedan_cartas_en_mano():
+		return
+	juego.finalizar()
+	var resumen := juego.obtener_resumen()
+	mensaje_label.text = "Partida terminada - Puntaje: %d | Pilas: %d | Movimientos: %d" % [
+		resumen["puntaje"], resumen["pilas_finales"], resumen["movimientos"],
+	]
+	_refrescar_tablero()
+
+
 func _refrescar_tablero() -> void:
 	for hijo in grilla_pilas.get_children():
 		hijo.queue_free()
@@ -73,18 +88,12 @@ func _refrescar_tablero() -> void:
 	estado_label.text = "Pilas: %d | Cartas en mazo: %d" % [juego.tablero.cantidad_pilas(), cartas_restantes]
 	boton_mazo.disabled = juego.esta_terminada() or cartas_restantes == 0
 	boton_mazo.text = "Mazo vacío" if cartas_restantes == 0 else "Repartir carta (%d)" % cartas_restantes
+	boton_finalizar.visible = cartas_restantes == 0 and not juego.esta_terminada()
 
 
 func _verificar_fin_de_partida() -> void:
 	if juego.quedan_cartas_en_mano():
 		return
 	if not Reglas.buscar_jugadas_posibles(juego.tablero).is_empty():
-		mensaje_label.text = "No quedan cartas. Todavía hay jugadas posibles."
 		return
-
-	juego.finalizar()
-	var resumen := juego.obtener_resumen()
-	mensaje_label.text = "Partida terminada - Puntaje: %d | Pilas: %d | Movimientos: %d" % [
-		resumen["puntaje"], resumen["pilas_finales"], resumen["movimientos"],
-	]
-	_refrescar_tablero()
+	_al_tocar_finalizar()
