@@ -12,6 +12,8 @@ const ESCENA_PILA := preload("res://scenes/pila_visual.tscn")
 @onready var boton_finalizar: Button = $Margen/Columna/Finalizar
 @onready var estado_label: Label = $Margen/Columna/Estado
 @onready var mensaje_label: Label = $Margen/Columna/Mensaje
+@onready var sonido_repartir: AudioStreamPlayer = $SonidoRepartir
+@onready var sonido_movimiento: AudioStreamPlayer = $SonidoMovimiento
 
 var juego := Juego.new(Carta.Dificultad.FACIL)
 var indice_seleccionado := -1
@@ -30,6 +32,7 @@ func _al_tocar_mazo() -> void:
 		return
 
 	juego.repartir_carta()
+	sonido_repartir.play()
 	indice_seleccionado = -1
 	mensaje_label.text = "Carta repartida."
 	_refrescar_tablero()
@@ -56,6 +59,7 @@ func _al_tocar_pila(indice: int) -> void:
 		return
 
 	if juego.intentar_jugada(indice_destino):
+		sonido_movimiento.play()
 		mensaje_label.text = "Jugada válida. Las pilas se fusionaron."
 	else:
 		mensaje_label.text = "Ahí no hay coincidencia."

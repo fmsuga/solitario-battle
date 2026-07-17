@@ -1,7 +1,9 @@
-[gd_scene load_steps=3 format=3 uid="uid://c6lu7a0pa25mq"]
+[gd_scene load_steps=5 format=3 uid="uid://c6lu7a0pa25mq"]
 
 [ext_resource type="Script" uid="uid://dpkwbcbtlq1h6" path="res://scripts/tablero_visual.gd" id="1_tablero"]
 [ext_resource type="PackedScene" path="res://scenes/mazo_visual.tscn" id="2_mazo"]
+[ext_resource type="AudioStream" path="res://assets/sonidos/repartir.wav" id="3_repartir"]
+[ext_resource type="AudioStream" path="res://assets/sonidos/movimiento_exitoso.wav" id="4_movimiento"]
 
 [node name="Tablero" type="Control" unique_id=1099159195]
 layout_mode = 3
@@ -91,3 +93,9 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
 theme_override_font_sizes/font_size = 24
 text = "Terminar partida"
+
+[node name="SonidoRepartir" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("3_repartir")
+
+[node name="SonidoMovimiento" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("4_movimiento")

@@ -15,7 +15,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="Solitario Battle"
-run/main_scene="res://scenes/tablero.tscn"
+run/main_scene="res://scenes/menu_principal.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 
 [display]

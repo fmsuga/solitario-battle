@@ -1,0 +1,174 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/menu_principal.gd" id="1_menu"]
+[ext_resource type="Texture2D" path="res://assets/interfaz/palo_oros.png" id="2_oros"]
+[ext_resource type="Texture2D" path="res://assets/interfaz/palo_copas.png" id="3_copas"]
+[ext_resource type="Texture2D" path="res://assets/interfaz/palo_espadas.png" id="4_espadas"]
+[ext_resource type="Texture2D" path="res://assets/interfaz/palo_bastos.png" id="5_bastos"]
+[ext_resource type="Texture2D" path="res://assets/interfaz/ornamento_dorado.png" id="6_ornamento"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tarjeta"]
+bg_color = Color(0.0627, 0.1725, 0.1451, 1)
+content_margin_left = 40.0
+content_margin_top = 32.0
+content_margin_right = 40.0
+content_margin_bottom = 32.0
+
+[node name="MenuPrincipal" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_menu")
+
+[node name="Fondo" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0235, 0.1647, 0.1255, 1)
+
+[node name="Centro" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Columna" type="VBoxContainer" parent="Centro"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Palos" type="HBoxContainer" parent="Centro/Columna"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Oros" type="TextureRect" parent="Centro/Columna/Palos"]
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+texture = ExtResource("2_oros")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Copas" type="TextureRect" parent="Centro/Columna/Palos"]
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+texture = ExtResource("3_copas")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Espadas" type="TextureRect" parent="Centro/Columna/Palos"]
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+texture = ExtResource("4_espadas")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Bastos" type="TextureRect" parent="Centro/Columna/Palos"]
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+texture = ExtResource("5_bastos")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Titulo" type="Label" parent="Centro/Columna"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_font_sizes/font_size = 54
+text = "SOLITARIO
+BATTLE"
+horizontal_alignment = 1
+
+[node name="Lema" type="HBoxContainer" parent="Centro/Columna"]
+layout_mode = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="OrnamentoIzquierdo" type="TextureRect" parent="Centro/Columna/Lema"]
+custom_minimum_size = Vector2(110, 40)
+layout_mode = 2
+texture = ExtResource("6_ornamento")
+flip_h = true
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Tagline" type="Label" parent="Centro/Columna/Lema"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
+theme_override_font_sizes/font_size = 20
+text = "Un juego de observación y estrategia"
+horizontal_alignment = 1
+
+[node name="OrnamentoDerecho" type="TextureRect" parent="Centro/Columna/Lema"]
+custom_minimum_size = Vector2(110, 40)
+layout_mode = 2
+texture = ExtResource("6_ornamento")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Version" type="Label" parent="Centro/Columna"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.549, 0.655, 0.604, 1)
+theme_override_font_sizes/font_size = 14
+text = "v0.5 mobile"
+horizontal_alignment = 1
+
+[node name="EspacioTarjeta" type="Control" parent="Centro/Columna"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+
+[node name="Tarjeta" type="PanelContainer" parent="Centro/Columna"]
+custom_minimum_size = Vector2(460, 0)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_tarjeta")
+
+[node name="Botones" type="VBoxContainer" parent="Centro/Columna/Tarjeta"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Jugar" type="Button" parent="Centro/Columna/Tarjeta/Botones"]
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_font_sizes/font_size = 30
+text = "Jugar"
+
+[node name="Progreso" type="Button" parent="Centro/Columna/Tarjeta/Botones"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+disabled = true
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_font_sizes/font_size = 22
+text = "Mi progreso"
+
+[node name="Records" type="Button" parent="Centro/Columna/Tarjeta/Botones"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+disabled = true
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_font_sizes/font_size = 22
+text = "Récords"
+
+[node name="Configuracion" type="Button" parent="Centro/Columna/Tarjeta/Botones"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+disabled = true
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_font_sizes/font_size = 22
+text = "Configuración"
+
+[node name="Salir" type="Button" parent="Centro/Columna/Tarjeta/Botones"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_font_sizes/font_size = 22
+text = "Salir"
