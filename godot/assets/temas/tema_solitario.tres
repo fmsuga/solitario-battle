@@ -1,0 +1,51 @@
+[gd_resource type="Theme" format=3 uid="uid://svbgrsuwyer6"]
+
+[ext_resource type="FontFile" uid="uid://3he8ven8j702" path="res://assets/fuentes/NotoSans-Variable.ttf" id="1_noto"]
+[ext_resource type="FontVariation" path="res://assets/fuentes/noto_sans_negrita.tres" id="2_noto_negrita"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_boton_deshabilitado"]
+bg_color = Color(0.82, 0.85, 0.82, 0.45)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.1725, 0.3451, 0.2863, 0.5)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_boton_hover"]
+bg_color = Color(0.9333, 0.898, 0.8275, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.1725, 0.3451, 0.2863, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_boton"]
+bg_color = Color(0.9725, 0.9529, 0.9098, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.1725, 0.3451, 0.2863, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[resource]
+default_font = ExtResource("1_noto")
+default_font_size = 18
+Button/colors/font_color = Color(0.0941, 0.2, 0.1686, 1)
+Button/colors/font_disabled_color = Color(0.0941, 0.2, 0.1686, 0.6)
+Button/fonts/font = ExtResource("2_noto_negrita")
+Button/styles/disabled = SubResource("StyleBoxFlat_boton_deshabilitado")
+Button/styles/hover = SubResource("StyleBoxFlat_boton_hover")
+Button/styles/normal = SubResource("StyleBoxFlat_boton")
+Button/styles/pressed = SubResource("StyleBoxFlat_boton_hover")
