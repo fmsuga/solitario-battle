@@ -85,7 +85,7 @@ func duracion_segundos() -> int:
 
 
 func obtener_resumen() -> Dictionary:
-	var fecha := Time.get_datetime_dict_from_unix_time(momento_inicio)
+	var fecha := Time.get_datetime_dict_from_unix_time(int(momento_inicio))
 	return {
 		"fecha": "%04d-%02d-%02d %02d:%02d" % [
 			fecha.year, fecha.month, fecha.day, fecha.hour, fecha.minute,

@@ -1,16 +1,24 @@
-[gd_scene load_steps=6 format=3 uid="uid://c6lu7a0pa25mq"]
+[gd_scene load_steps=18 format=3 uid="uid://c6lu7a0pa25mq"]
 
 [ext_resource type="Script" uid="uid://dpkwbcbtlq1h6" path="res://scripts/tablero_visual.gd" id="1_tablero"]
 [ext_resource type="PackedScene" path="res://scenes/mazo_visual.tscn" id="2_mazo"]
 [ext_resource type="AudioStream" path="res://assets/sonidos/repartir.wav" id="3_repartir"]
 [ext_resource type="AudioStream" path="res://assets/sonidos/movimiento_exitoso.wav" id="4_movimiento"]
+[ext_resource type="StyleBox" path="res://assets/estilos/panel_tarjeta.tres" id="5_panel"]
+[ext_resource type="StyleBox" path="res://assets/estilos/boton_primario.tres" id="6_primario"]
+[ext_resource type="StyleBox" path="res://assets/estilos/boton_primario_hover.tres" id="7_primario_hover"]
+[ext_resource type="StyleBox" path="res://assets/estilos/boton_secundario.tres" id="8_secundario"]
+[ext_resource type="StyleBox" path="res://assets/estilos/boton_secundario_hover.tres" id="9_secundario_hover"]
+[ext_resource type="StyleBox" path="res://assets/estilos/campo_texto.tres" id="10_campo"]
+[ext_resource type="StyleBox" path="res://assets/estilos/campo_texto_foco.tres" id="11_campo_foco"]
+[ext_resource type="StyleBox" path="res://assets/estilos/chip_estadistica.tres" id="12_chip"]
+[ext_resource type="StyleBox" path="res://assets/estilos/boton_deshabilitado.tres" id="16_deshabilitado"]
+[ext_resource type="FontVariation" path="res://assets/fuentes/noto_sans_titulo.tres" id="13_titulo"]
+[ext_resource type="FontVariation" path="res://assets/fuentes/noto_sans_negrita.tres" id="14_negrita"]
+[ext_resource type="FontVariation" path="res://assets/fuentes/merriweather_negrita_cursiva.tres" id="15_merriweather"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.0627, 0.1725, 0.1451, 1)
-content_margin_left = 40.0
-content_margin_top = 32.0
-content_margin_right = 40.0
-content_margin_bottom = 32.0
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fondo_pausa"]
+bg_color = Color(0, 0, 0, 0.72)
 
 [node name="Tablero" type="Control" unique_id=1099159195]
 layout_mode = 3
@@ -132,14 +140,18 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Fondo" type="ColorRect" parent="MenuPausa"]
+[node name="Fondo" type="Button" parent="MenuPausa"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0.72)
+focus_mode = 0
+theme_override_styles/normal = SubResource("StyleBoxFlat_fondo_pausa")
+theme_override_styles/hover = SubResource("StyleBoxFlat_fondo_pausa")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_fondo_pausa")
+theme_override_styles/focus = SubResource("StyleBoxFlat_fondo_pausa")
 
 [node name="Centro" type="CenterContainer" parent="MenuPausa"]
 layout_mode = 1
@@ -148,51 +160,97 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
 [node name="Tarjeta" type="PanelContainer" parent="MenuPausa/Centro"]
-custom_minimum_size = Vector2(380, 0)
+custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+theme_override_styles/panel = ExtResource("5_panel")
 
 [node name="Columna" type="VBoxContainer" parent="MenuPausa/Centro/Tarjeta"]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 8
 
 [node name="Titulo" type="Label" parent="MenuPausa/Centro/Tarjeta/Columna"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
-theme_override_font_sizes/font_size = 30
-text = "Pausa"
+theme_override_colors/font_outline_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_constants/outline_size = 6
+theme_override_fonts/font = ExtResource("13_titulo")
+theme_override_font_sizes/font_size = 42
+text = "PAUSA"
 horizontal_alignment = 1
 
+[node name="Separador" type="ColorRect" parent="MenuPausa/Centro/Tarjeta/Columna"]
+custom_minimum_size = Vector2(64, 3)
+layout_mode = 2
+size_flags_horizontal = 4
+color = Color(0.898, 0.745, 0.447, 0.6)
+
+[node name="EspacioTituloBotones" type="Control" parent="MenuPausa/Centro/Tarjeta/Columna"]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+
 [node name="Continuar" type="Button" parent="MenuPausa/Centro/Tarjeta/Columna"]
-custom_minimum_size = Vector2(0, 76)
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
-theme_override_font_sizes/font_size = 24
+theme_override_fonts/font = ExtResource("14_negrita")
+theme_override_font_sizes/font_size = 26
+theme_override_styles/normal = ExtResource("6_primario")
+theme_override_styles/hover = ExtResource("7_primario_hover")
+theme_override_styles/pressed = ExtResource("7_primario_hover")
 text = "Continuar"
 
+[node name="EspacioPrimarioSecundarios" type="Control" parent="MenuPausa/Centro/Tarjeta/Columna"]
+custom_minimum_size = Vector2(0, 14)
+layout_mode = 2
+
 [node name="Reiniciar" type="Button" parent="MenuPausa/Centro/Tarjeta/Columna"]
-custom_minimum_size = Vector2(0, 76)
+custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
-theme_override_font_sizes/font_size = 24
+theme_override_fonts/font = ExtResource("14_negrita")
+theme_override_font_sizes/font_size = 21
+theme_override_styles/normal = ExtResource("8_secundario")
+theme_override_styles/hover = ExtResource("9_secundario_hover")
+theme_override_styles/pressed = ExtResource("9_secundario_hover")
 text = "Reiniciar partida"
 
 [node name="Ajustes" type="Button" parent="MenuPausa/Centro/Tarjeta/Columna"]
-custom_minimum_size = Vector2(0, 76)
+custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 disabled = true
 theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
-theme_override_font_sizes/font_size = 24
+theme_override_colors/font_disabled_color = Color(0.6, 0.62, 0.6, 0.55)
+theme_override_fonts/font = ExtResource("14_negrita")
+theme_override_font_sizes/font_size = 21
+theme_override_styles/normal = ExtResource("8_secundario")
+theme_override_styles/hover = ExtResource("9_secundario_hover")
+theme_override_styles/pressed = ExtResource("9_secundario_hover")
+theme_override_styles/disabled = ExtResource("16_deshabilitado")
 text = "Ajustes"
 
 [node name="VolverMenu" type="Button" parent="MenuPausa/Centro/Tarjeta/Columna"]
-custom_minimum_size = Vector2(0, 76)
+custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
-theme_override_font_sizes/font_size = 24
+theme_override_fonts/font = ExtResource("14_negrita")
+theme_override_font_sizes/font_size = 21
+theme_override_styles/normal = ExtResource("8_secundario")
+theme_override_styles/hover = ExtResource("9_secundario_hover")
+theme_override_styles/pressed = ExtResource("9_secundario_hover")
 text = "Volver al menú"
+
+[node name="AvisoConfirmacion" type="Label" parent="MenuPausa/Centro/Tarjeta/Columna"]
+visible = false
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.65, 0.6, 1)
+theme_override_font_sizes/font_size = 16
+text = "Tocá de nuevo para confirmar."
+horizontal_alignment = 1
+autowrap_mode = 2
 
 [node name="PantallaFin" type="Control" parent="."]
 visible = false
@@ -221,72 +279,225 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Tarjeta" type="PanelContainer" parent="PantallaFin/Centro"]
-custom_minimum_size = Vector2(420, 0)
+custom_minimum_size = Vector2(520, 0)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+theme_override_styles/panel = ExtResource("5_panel")
 
 [node name="Columna" type="VBoxContainer" parent="PantallaFin/Centro/Tarjeta"]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 6
 
 [node name="Titulo" type="Label" parent="PantallaFin/Centro/Tarjeta/Columna"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
-theme_override_font_sizes/font_size = 30
-text = "Partida terminada"
+theme_override_colors/font_outline_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_constants/outline_size = 6
+theme_override_fonts/font = ExtResource("13_titulo")
+theme_override_font_sizes/font_size = 38
+text = "PARTIDA TERMINADA"
 horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="EspacioTituloInterpretacion" type="Control" parent="PantallaFin/Centro/Tarjeta/Columna"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
 
 [node name="Interpretacion" type="Label" parent="PantallaFin/Centro/Tarjeta/Columna"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_fonts/font = ExtResource("15_merriweather")
+theme_override_font_sizes/font_size = 22
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="Estadisticas" type="Label" parent="PantallaFin/Centro/Tarjeta/Columna"]
+[node name="EspacioInterpretacionSeparador" type="Control" parent="PantallaFin/Centro/Tarjeta/Columna"]
+custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
-theme_override_font_sizes/font_size = 20
+
+[node name="Separador" type="ColorRect" parent="PantallaFin/Centro/Tarjeta/Columna"]
+custom_minimum_size = Vector2(64, 2)
+layout_mode = 2
+size_flags_horizontal = 4
+color = Color(0.898, 0.745, 0.447, 0.4)
+
+[node name="EspacioSeparadorStats" type="Control" parent="PantallaFin/Centro/Tarjeta/Columna"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+
+[node name="Estadisticas" type="GridContainer" parent="PantallaFin/Centro/Tarjeta/Columna"]
+layout_mode = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
+columns = 2
+
+[node name="ChipPuntaje" type="PanelContainer" parent="PantallaFin/Centro/Tarjeta/Columna/Estadisticas"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = ExtResource("12_chip")
+
+[node name="Columna" type="VBoxContainer" parent="PantallaFin/Centro/Tarjeta/Columna/Estadisticas/ChipPuntaje"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Valor" type="Label" parent="PantallaFin/Centro/Tarjeta/Columna/Estadisticas/ChipPuntaje/Columna"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
+theme_override_fonts/font = ExtResource("14_negrita")
+theme_override_font_sizes/font_size = 30
+text = "0"
 horizontal_alignment = 1
 
-[node name="Nombre" type="LineEdit" parent="PantallaFin/Centro/Tarjeta/Columna"]
-custom_minimum_size = Vector2(0, 56)
+[node name="Etiqueta" type="Label" parent="PantallaFin/Centro/Tarjeta/Columna/Estadisticas/ChipPuntaje/Columna"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.68, 0.75, 0.72, 1)
+theme_override_font_sizes/font_size = 14
+text = "PUNTAJE"
+horizontal_alignment = 1
+
+[node name="ChipPilas" type="PanelContainer" parent="PantallaFin/Centro/Tarjeta/Columna/Estadisticas"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = ExtResource("12_chip")
+
+[node name="Columna" type="VBoxContainer" parent="PantallaFin/Centro/Tarjeta/Columna/Estadisticas/ChipPilas"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Valor" type="Label" parent="PantallaFin/Centro/Tarjeta/Columna/Estadisticas/ChipPilas/Columna"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_fonts/font = ExtResource("14_negrita")
+theme_override_font_sizes/font_size = 30
+text = "0"
+horizontal_alignment = 1
+
+[node name="Etiqueta" type="Label" parent="PantallaFin/Centro/Tarjeta/Columna/Estadisticas/ChipPilas/Columna"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.68, 0.75, 0.72, 1)
+theme_override_font_sizes/font_size = 14
+text = "PILAS FINALES"
+horizontal_alignment = 1
+
+[node name="ChipMovimientos" type="PanelContainer" parent="PantallaFin/Centro/Tarjeta/Columna/Estadisticas"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = ExtResource("12_chip")
+
+[node name="Columna" type="VBoxContainer" parent="PantallaFin/Centro/Tarjeta/Columna/Estadisticas/ChipMovimientos"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Valor" type="Label" parent="PantallaFin/Centro/Tarjeta/Columna/Estadisticas/ChipMovimientos/Columna"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_fonts/font = ExtResource("14_negrita")
+theme_override_font_sizes/font_size = 30
+text = "0"
+horizontal_alignment = 1
+
+[node name="Etiqueta" type="Label" parent="PantallaFin/Centro/Tarjeta/Columna/Estadisticas/ChipMovimientos/Columna"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.68, 0.75, 0.72, 1)
+theme_override_font_sizes/font_size = 14
+text = "MOVIMIENTOS"
+horizontal_alignment = 1
+
+[node name="ChipDuracion" type="PanelContainer" parent="PantallaFin/Centro/Tarjeta/Columna/Estadisticas"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = ExtResource("12_chip")
+
+[node name="Columna" type="VBoxContainer" parent="PantallaFin/Centro/Tarjeta/Columna/Estadisticas/ChipDuracion"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Valor" type="Label" parent="PantallaFin/Centro/Tarjeta/Columna/Estadisticas/ChipDuracion/Columna"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_fonts/font = ExtResource("14_negrita")
+theme_override_font_sizes/font_size = 30
+text = "0s"
+horizontal_alignment = 1
+
+[node name="Etiqueta" type="Label" parent="PantallaFin/Centro/Tarjeta/Columna/Estadisticas/ChipDuracion/Columna"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.68, 0.75, 0.72, 1)
+theme_override_font_sizes/font_size = 14
+text = "DURACIÓN"
+horizontal_alignment = 1
+
+[node name="EspacioStatsNombre" type="Control" parent="PantallaFin/Centro/Tarjeta/Columna"]
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+
+[node name="Nombre" type="LineEdit" parent="PantallaFin/Centro/Tarjeta/Columna"]
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_colors/font_placeholder_color = Color(0.68, 0.75, 0.72, 0.6)
+theme_override_font_sizes/font_size = 20
+theme_override_styles/normal = ExtResource("10_campo")
+theme_override_styles/focus = ExtResource("11_campo_foco")
 placeholder_text = "Tu nombre"
 max_length = 24
 alignment = 1
 
-[node name="GuardarRecord" type="Button" parent="PantallaFin/Centro/Tarjeta/Columna"]
-custom_minimum_size = Vector2(0, 64)
+[node name="EspacioNombreGuardar" type="Control" parent="PantallaFin/Centro/Tarjeta/Columna"]
+custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
-text = "Guardar récord"
+
+[node name="GuardarRecord" type="Button" parent="PantallaFin/Centro/Tarjeta/Columna"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_colors/font_disabled_color = Color(0.6, 0.62, 0.6, 0.55)
+theme_override_fonts/font = ExtResource("14_negrita")
+theme_override_font_sizes/font_size = 19
+theme_override_styles/normal = ExtResource("8_secundario")
+theme_override_styles/hover = ExtResource("9_secundario_hover")
+theme_override_styles/pressed = ExtResource("9_secundario_hover")
+theme_override_styles/disabled = ExtResource("16_deshabilitado")
+text = "💾 Guardar récord"
 
 [node name="MensajeGuardado" type="Label" parent="PantallaFin/Centro/Tarjeta/Columna"]
 visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0.42, 0.85, 0.55, 1)
-theme_override_font_sizes/font_size = 18
-text = "Récord guardado."
+theme_override_font_sizes/font_size = 17
+text = "✔ Récord guardado."
 horizontal_alignment = 1
+
+[node name="EspacioGuardarBotones" type="Control" parent="PantallaFin/Centro/Tarjeta/Columna"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
 
 [node name="Botones" type="HBoxContainer" parent="PantallaFin/Centro/Tarjeta/Columna"]
 layout_mode = 2
-theme_override_constants/separation = 14
-
-[node name="JugarDeNuevo" type="Button" parent="PantallaFin/Centro/Tarjeta/Columna/Botones"]
-custom_minimum_size = Vector2(0, 68)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 20
-text = "Jugar de nuevo"
+theme_override_constants/separation = 12
 
 [node name="VolverMenu" type="Button" parent="PantallaFin/Centro/Tarjeta/Columna/Botones"]
 custom_minimum_size = Vector2(0, 68)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_fonts/font = ExtResource("14_negrita")
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = ExtResource("8_secundario")
+theme_override_styles/hover = ExtResource("9_secundario_hover")
+theme_override_styles/pressed = ExtResource("9_secundario_hover")
 text = "Menú principal"
+
+[node name="JugarDeNuevo" type="Button" parent="PantallaFin/Centro/Tarjeta/Columna/Botones"]
+custom_minimum_size = Vector2(0, 68)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_fonts/font = ExtResource("14_negrita")
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = ExtResource("6_primario")
+theme_override_styles/hover = ExtResource("7_primario_hover")
+theme_override_styles/pressed = ExtResource("7_primario_hover")
+text = "Jugar de nuevo"
 
 [node name="SonidoRepartir" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("3_repartir")
@@ -300,4 +511,8 @@ autostart = true
 
 [node name="TemporizadorMensaje" type="Timer" parent="."]
 wait_time = 2.3
+one_shot = true
+
+[node name="TemporizadorConfirmacion" type="Timer" parent="."]
+wait_time = 3.0
 one_shot = true

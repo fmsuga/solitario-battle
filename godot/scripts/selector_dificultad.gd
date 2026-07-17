@@ -1,7 +1,14 @@
 extends Control
 
 const ESCENA_TABLERO := preload("res://scenes/tablero.tscn")
-const ESCENA_MENU := preload("res://scenes/menu_principal.tscn")
+# load() en vez de preload(): esta escena vuelve al menú principal, que a
+# su vez preload-ea esta misma escena (selector_dificultad) para llegar
+# acá. Si las dos usaran preload(), Godot necesitaría terminar de cargar
+# cada una para poder cargar la otra -> ciclo -> "Parse Error: Busy".
+# load() se resuelve recién cuando se ejecuta la línea (al tocar
+# "Volver"), momento en el que ambas escenas ya están completamente
+# cargadas, así que el ciclo desaparece.
+var ESCENA_MENU := load("res://scenes/menu_principal.tscn")
 
 @onready var boton_facil: Button = $Centro/Columna/Tarjeta/Botones/Facil
 @onready var boton_dificil: Button = $Centro/Columna/Tarjeta/Botones/Dificil

@@ -8,8 +8,16 @@ extends Control
 ## el mazo; a partir de ahí, la decisión de cortar es del jugador.
 
 const ESCENA_PILA := preload("res://scenes/pila_visual.tscn")
-const ESCENA_MENU := preload("res://scenes/menu_principal.tscn")
+# load() en vez de preload(): ver el comentario en selector_dificultad.gd
+# (mismo motivo — esta escena también vuelve al menú principal, que
+# preload-ea el selector que a su vez preload-eaba el tablero: ciclo).
+var ESCENA_MENU := load("res://scenes/menu_principal.tscn")
 const TAMANIO_CASILLERO := Vector2(170, 261) # igual al custom_minimum_size de PilaVisual
+
+const ESTILO_PELIGRO := preload("res://assets/estilos/boton_peligro.tres")
+const ESTILO_PELIGRO_HOVER := preload("res://assets/estilos/boton_peligro_hover.tres")
+const ESTILO_SECUNDARIO := preload("res://assets/estilos/boton_secundario.tres")
+const ESTILO_SECUNDARIO_HOVER := preload("res://assets/estilos/boton_secundario_hover.tres")
 
 @onready var grilla_pilas: GridContainer = $Margen/Columna/TableroScroll/Centro/Pilas
 @onready var boton_mazo: MazoVisual = $Margen/Columna/Mazo
@@ -20,13 +28,19 @@ const TAMANIO_CASILLERO := Vector2(170, 261) # igual al custom_minimum_size de P
 
 @onready var boton_menu_hamburguesa: Button = $BotonMenu
 @onready var menu_pausa: Control = $MenuPausa
+@onready var tarjeta_pausa: Control = $MenuPausa/Centro/Tarjeta
 @onready var boton_continuar: Button = $MenuPausa/Centro/Tarjeta/Columna/Continuar
 @onready var boton_reiniciar: Button = $MenuPausa/Centro/Tarjeta/Columna/Reiniciar
 @onready var boton_volver_menu_pausa: Button = $MenuPausa/Centro/Tarjeta/Columna/VolverMenu
+@onready var aviso_confirmacion: Label = $MenuPausa/Centro/Tarjeta/Columna/AvisoConfirmacion
 
 @onready var pantalla_fin: Control = $PantallaFin
+@onready var tarjeta_fin: Control = $PantallaFin/Centro/Tarjeta
 @onready var interpretacion_label: Label = $PantallaFin/Centro/Tarjeta/Columna/Interpretacion
-@onready var estadisticas_label: Label = $PantallaFin/Centro/Tarjeta/Columna/Estadisticas
+@onready var valor_puntaje: Label = $PantallaFin/Centro/Tarjeta/Columna/Estadisticas/ChipPuntaje/Columna/Valor
+@onready var valor_pilas: Label = $PantallaFin/Centro/Tarjeta/Columna/Estadisticas/ChipPilas/Columna/Valor
+@onready var valor_movimientos: Label = $PantallaFin/Centro/Tarjeta/Columna/Estadisticas/ChipMovimientos/Columna/Valor
+@onready var valor_duracion: Label = $PantallaFin/Centro/Tarjeta/Columna/Estadisticas/ChipDuracion/Columna/Valor
 @onready var campo_nombre: LineEdit = $PantallaFin/Centro/Tarjeta/Columna/Nombre
 @onready var boton_guardar_record: Button = $PantallaFin/Centro/Tarjeta/Columna/GuardarRecord
 @onready var mensaje_guardado_label: Label = $PantallaFin/Centro/Tarjeta/Columna/MensajeGuardado
@@ -37,10 +51,18 @@ const TAMANIO_CASILLERO := Vector2(170, 261) # igual al custom_minimum_size de P
 @onready var sonido_movimiento: AudioStreamPlayer = $SonidoMovimiento
 @onready var temporizador_ui: Timer = $TemporizadorUI
 @onready var temporizador_mensaje: Timer = $TemporizadorMensaje
+@onready var temporizador_confirmacion: Timer = $TemporizadorConfirmacion
 
 var juego := Juego.new(EstadoJuego.dificultad_seleccionada)
 var indice_seleccionado := -1
 var resumen_final: Dictionary = {}
+
+## Acciones destructivas (Reiniciar / Volver al menú desde pausa) piden un
+## segundo toque para ejecutarse, en vez de actuar directo. Guardamos acá
+## cuál botón está "armado" (esperando confirmación) para poder desarmarlo
+## si se toca otro botón, se cierra el menú, o pasa el tiempo de espera.
+var _boton_armado: Button = null
+var _texto_original_por_boton: Dictionary = {}
 
 
 func _ready() -> void:
@@ -49,8 +71,10 @@ func _ready() -> void:
 
 	boton_menu_hamburguesa.pressed.connect(_al_tocar_hamburguesa)
 	boton_continuar.pressed.connect(_al_tocar_continuar)
-	boton_reiniciar.pressed.connect(_al_tocar_reiniciar)
-	boton_volver_menu_pausa.pressed.connect(_al_tocar_volver_menu)
+	$MenuPausa/Fondo.pressed.connect(_al_tocar_continuar)
+	boton_reiniciar.pressed.connect(_armar_o_confirmar.bind(boton_reiniciar, _al_tocar_reiniciar))
+	boton_volver_menu_pausa.pressed.connect(_armar_o_confirmar.bind(boton_volver_menu_pausa, _al_tocar_volver_menu))
+	temporizador_confirmacion.timeout.connect(_al_vencer_confirmacion)
 
 	boton_guardar_record.pressed.connect(_al_tocar_guardar_record)
 	boton_jugar_de_nuevo.pressed.connect(_al_tocar_reiniciar)
@@ -111,10 +135,12 @@ func _al_tocar_finalizar() -> void:
 
 
 func _al_tocar_hamburguesa() -> void:
-	menu_pausa.visible = true
+	_desarmar_confirmacion()
+	_mostrar_con_animacion(menu_pausa, tarjeta_pausa)
 
 
 func _al_tocar_continuar() -> void:
+	_desarmar_confirmacion()
 	menu_pausa.visible = false
 
 
@@ -124,6 +150,46 @@ func _al_tocar_reiniciar() -> void:
 
 func _al_tocar_volver_menu() -> void:
 	get_tree().change_scene_to_packed(ESCENA_MENU)
+
+
+## Primer toque: arma el botón (cambia a estilo de peligro y pide
+## confirmar). Segundo toque sobre el MISMO botón, antes de que venza el
+## temporizador: recién ahí ejecuta la acción. Evita perder una partida
+## por un toque accidental, sin necesitar un cuadro de diálogo aparte.
+func _armar_o_confirmar(boton: Button, accion: Callable) -> void:
+	if _boton_armado == boton:
+		_desarmar_confirmacion()
+		accion.call()
+		return
+
+	_desarmar_confirmacion()
+	_boton_armado = boton
+	if not _texto_original_por_boton.has(boton):
+		_texto_original_por_boton[boton] = boton.text
+
+	boton.text = "¿Seguro? Tocá de nuevo"
+	boton.add_theme_stylebox_override("normal", ESTILO_PELIGRO)
+	boton.add_theme_stylebox_override("hover", ESTILO_PELIGRO_HOVER)
+	boton.add_theme_stylebox_override("pressed", ESTILO_PELIGRO_HOVER)
+	aviso_confirmacion.visible = true
+	temporizador_confirmacion.start()
+
+
+func _desarmar_confirmacion() -> void:
+	temporizador_confirmacion.stop()
+	aviso_confirmacion.visible = false
+	if _boton_armado == null:
+		return
+	if _texto_original_por_boton.has(_boton_armado):
+		_boton_armado.text = _texto_original_por_boton[_boton_armado]
+	_boton_armado.add_theme_stylebox_override("normal", ESTILO_SECUNDARIO)
+	_boton_armado.add_theme_stylebox_override("hover", ESTILO_SECUNDARIO_HOVER)
+	_boton_armado.add_theme_stylebox_override("pressed", ESTILO_SECUNDARIO_HOVER)
+	_boton_armado = null
+
+
+func _al_vencer_confirmacion() -> void:
+	_desarmar_confirmacion()
 
 
 func _al_tocar_guardar_record() -> void:
@@ -138,17 +204,32 @@ func _al_tocar_guardar_record() -> void:
 
 func _mostrar_pantalla_fin() -> void:
 	interpretacion_label.text = Puntuacion.interpretar_resultado(resumen_final["pilas_finales"])
-	estadisticas_label.text = "Puntaje: %d\nPilas finales: %d\nMovimientos: %d\nDuración: %s" % [
-		resumen_final["puntaje"],
-		resumen_final["pilas_finales"],
-		resumen_final["movimientos"],
-		Puntuacion.formatear_duracion(resumen_final["duracion_segundos"]),
-	]
+	valor_puntaje.text = str(resumen_final["puntaje"])
+	valor_pilas.text = str(resumen_final["pilas_finales"])
+	valor_movimientos.text = str(resumen_final["movimientos"])
+	valor_duracion.text = Puntuacion.formatear_duracion(resumen_final["duracion_segundos"])
 	mensaje_guardado_label.visible = false
 	boton_guardar_record.disabled = false
 	campo_nombre.editable = true
 	campo_nombre.text = ""
-	pantalla_fin.visible = true
+	_mostrar_con_animacion(pantalla_fin, tarjeta_fin)
+
+
+## Entrada suave para los paneles superpuestos (pausa / fin de partida):
+## la tarjeta aparece con un ligero "pop" (escala 0.9 -> 1.0 con rebote)
+## mientras el fondo oscuro se desvanece. Aparecer de golpe, sin
+## transición, se siente brusco en una pantalla táctil; esta animación es
+## corta (~0.2s) para no demorar al jugador.
+func _mostrar_con_animacion(overlay: Control, tarjeta: Control) -> void:
+	overlay.visible = true
+	overlay.modulate.a = 0.0
+	tarjeta.scale = Vector2(0.9, 0.9)
+	await get_tree().process_frame  # esperamos un frame para que 'tarjeta' ya tenga su tamaño final
+	tarjeta.pivot_offset = tarjeta.size / 2
+	var animacion := create_tween().set_parallel(true)
+	animacion.tween_property(overlay, "modulate:a", 1.0, 0.16)
+	animacion.tween_property(tarjeta, "scale", Vector2.ONE, 0.22)\
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _mostrar_mensaje_temporal(texto: String) -> void:

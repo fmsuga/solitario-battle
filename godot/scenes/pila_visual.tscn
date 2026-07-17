@@ -1,17 +1,16 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://c7dhaijyjfn0l"]
 
-[ext_resource type="Script" path="res://scripts/pila_visual.gd" id="1_pila"]
+[ext_resource type="Script" uid="uid://bqfg7wf4k68m0" path="res://scripts/pila_visual.gd" id="1_pila"]
 
-[node name="PilaVisual" type="Button"]
+[node name="PilaVisual" type="Button" unique_id=1700145888]
 custom_minimum_size = Vector2(170, 261)
-layout_mode = 0
 theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 22
 flat = true
 script = ExtResource("1_pila")
 
-[node name="Fondo" type="ColorRect" parent="."]
+[node name="Fondo" type="ColorRect" parent="." unique_id=2129104968]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -21,7 +20,7 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.12, 0.25, 0.39, 0)
 
-[node name="Borde" type="ColorRect" parent="."]
+[node name="Borde" type="ColorRect" parent="." unique_id=175543502]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -31,11 +30,9 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.82, 0.71, 0.32, 0)
 
-[node name="Imagen" type="TextureRect" parent="Borde"]
+[node name="Imagen" type="TextureRect" parent="Borde" unique_id=1087042944]
 layout_mode = 1
 anchors_preset = 15
-anchor_left = 0.0
-anchor_top = 0.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
@@ -44,26 +41,26 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="FondoContador" type="ColorRect" parent="."]
+[node name="FondoContador" type="ColorRect" parent="." unique_id=482835238]
 layout_mode = 1
-anchors_preset = 12
+anchors_preset = -1
 anchor_top = 0.86
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-color = Color(0.0627, 0.1725, 0.1451, 0.82)
+color = Color(0.2328035, 0.091127165, 0.18150726, 0.81960785)
 
-[node name="Cantidad" type="Label" parent="."]
+[node name="Cantidad" type="Label" parent="." unique_id=470943228]
 layout_mode = 1
-anchors_preset = 12
+anchors_preset = -1
 anchor_top = 0.86
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = 1.5399933
 grow_horizontal = 2
 grow_vertical = 0
-mouse_filter = 2
 theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
 theme_override_font_sizes/font_size = 22
 text = "x1"
