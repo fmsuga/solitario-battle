@@ -10,8 +10,8 @@ const ESCENA_TABLERO := preload("res://scenes/tablero.tscn")
 # cargadas, así que el ciclo desaparece.
 var ESCENA_MENU := load("res://scenes/menu_principal.tscn")
 
-@onready var boton_facil: Button = $Centro/Columna/Tarjeta/Botones/Facil
-@onready var boton_dificil: Button = $Centro/Columna/Tarjeta/Botones/Dificil
+@onready var boton_facil: Button = $Centro/Columna/Tarjetas/Facil/Toque
+@onready var boton_dificil: Button = $Centro/Columna/Tarjetas/Dificil/Toque
 @onready var boton_volver: Button = $Centro/Columna/Volver
 
 
@@ -19,6 +19,11 @@ func _ready() -> void:
 	boton_facil.pressed.connect(_al_elegir.bind(Carta.Dificultad.FACIL))
 	boton_dificil.pressed.connect(_al_elegir.bind(Carta.Dificultad.DIFICIL))
 	boton_volver.pressed.connect(_al_tocar_volver)
+
+	# Entrada suave en vez de aparecer de golpe, mismo criterio que los
+	# overlays de pausa/fin/ajustes (ver tablero_visual.gd).
+	modulate.a = 0.0
+	create_tween().tween_property(self, "modulate:a", 1.0, 0.2)
 
 
 func _al_elegir(dificultad: int) -> void:
