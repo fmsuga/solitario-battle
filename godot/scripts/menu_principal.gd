@@ -1,20 +1,22 @@
 extends Control
 
 ## Menú principal. Equivalente a MenuPrincipal en interfaz_grafica.py.
-## Por ahora "Jugar" salta directo al tablero (Fácil por defecto), porque
-## el selector de dificultad todavía no existe (próxima tarea de Fase 5).
-## Mi progreso / Récords / Configuración quedan visibles pero deshabilitados:
-## son pantallas propias que se arman en pasos posteriores.
+## Mi progreso / Récords quedan visibles pero deshabilitados: son
+## pantallas propias que se arman en pasos posteriores. Ajustes ya está
+## conectado (ver AjustesOverlay).
 
 const ESCENA_SELECTOR_DIFICULTAD := preload("res://scenes/selector_dificultad.tscn")
 
 @onready var boton_jugar: Button = $Centro/Columna/Menu/Tarjeta/Botones/Jugar
 @onready var boton_salir: Button = $Centro/Columna/Menu/Tarjeta/Botones/Salir
+@onready var boton_configuracion: Button = $Centro/Columna/Menu/Tarjeta/Botones/Configuracion
+@onready var ajustes: Control = $AjustesOverlay
 
 
 func _ready() -> void:
 	boton_jugar.pressed.connect(_al_tocar_jugar)
 	boton_salir.pressed.connect(_al_tocar_salir)
+	boton_configuracion.pressed.connect(ajustes.mostrar)
 
 
 func _al_tocar_jugar() -> void:

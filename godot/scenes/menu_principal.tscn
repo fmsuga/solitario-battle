@@ -8,6 +8,7 @@
 [ext_resource type="FontFile" uid="uid://3he8ven8j702" path="res://assets/fuentes/NotoSans-Variable.ttf" id="6_2xgxd"]
 [ext_resource type="Texture2D" uid="uid://toyfrudsnxm8" path="res://assets/interfaz/ornamento_dorado.png" id="6_ornamento"]
 [ext_resource type="FontVariation" path="res://assets/fuentes/merriweather_negrita_cursiva.tres" id="8_merriweather"]
+[ext_resource type="PackedScene" path="res://scenes/ajustes_overlay.tscn" id="9_ajustes"]
 
 [sub_resource type="FontVariation" id="FontVariation_2xgxd"]
 base_font = ExtResource("6_2xgxd")
@@ -245,7 +246,6 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
 theme_override_font_sizes/font_size = 40
-disabled = true
 text = "Configuración"
 
 [node name="Salir" type="Button" parent="Centro/Columna/Menu/Tarjeta/Botones" unique_id=316987063]
@@ -254,3 +254,6 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_font_sizes/font_size = 40
 text = "Salir"
+
+[node name="AjustesOverlay" parent="." instance=ExtResource("9_ajustes")]
+layout_mode = 1

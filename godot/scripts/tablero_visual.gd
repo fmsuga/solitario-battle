@@ -22,15 +22,17 @@ const ESTILO_SECUNDARIO_HOVER := preload("res://assets/estilos/boton_secundario_
 @onready var grilla_pilas: GridContainer = $Margen/Columna/TableroScroll/Centro/Pilas
 @onready var boton_mazo: MazoVisual = $Margen/Columna/Mazo
 @onready var boton_finalizar: Button = $Margen/Columna/Finalizar
-@onready var estado_label: Label = $Margen/Columna/InfoFila/Estado
-@onready var tiempo_label: Label = $Margen/Columna/InfoFila/Tiempo
+@onready var estado_label: Label = $Margen/Columna/Encabezado/TituloYEstado/InfoFila/Estado
+@onready var tiempo_label: Label = $Margen/Columna/Encabezado/TituloYEstado/InfoFila/Tiempo
 @onready var mensaje_label: Label = $Margen/Columna/Mensaje
 
-@onready var boton_menu_hamburguesa: Button = $BotonMenu
+@onready var boton_menu_hamburguesa: Button = $Margen/Columna/Encabezado/BotonMenu
 @onready var menu_pausa: Control = $MenuPausa
 @onready var tarjeta_pausa: Control = $MenuPausa/Centro/Tarjeta
 @onready var boton_continuar: Button = $MenuPausa/Centro/Tarjeta/Columna/Continuar
 @onready var boton_reiniciar: Button = $MenuPausa/Centro/Tarjeta/Columna/Reiniciar
+@onready var boton_ajustes: Button = $MenuPausa/Centro/Tarjeta/Columna/Ajustes
+@onready var ajustes: Control = $AjustesOverlay
 @onready var boton_volver_menu_pausa: Button = $MenuPausa/Centro/Tarjeta/Columna/VolverMenu
 @onready var aviso_confirmacion: Label = $MenuPausa/Centro/Tarjeta/Columna/AvisoConfirmacion
 
@@ -73,6 +75,7 @@ func _ready() -> void:
 	boton_continuar.pressed.connect(_al_tocar_continuar)
 	$MenuPausa/Fondo.pressed.connect(_al_tocar_continuar)
 	boton_reiniciar.pressed.connect(_armar_o_confirmar.bind(boton_reiniciar, _al_tocar_reiniciar))
+	boton_ajustes.pressed.connect(_al_tocar_ajustes)
 	boton_volver_menu_pausa.pressed.connect(_armar_o_confirmar.bind(boton_volver_menu_pausa, _al_tocar_volver_menu))
 	temporizador_confirmacion.timeout.connect(_al_vencer_confirmacion)
 
@@ -142,6 +145,16 @@ func _al_tocar_hamburguesa() -> void:
 func _al_tocar_continuar() -> void:
 	_desarmar_confirmacion()
 	menu_pausa.visible = false
+
+
+## Ajustes se abre ENCIMA del juego (no dentro de la tarjeta de pausa):
+## se cierra la pausa y se muestra el overlay. Al cerrar Ajustes, el
+## jugador vuelve directo a la partida, no de nuevo al menú de pausa —
+## mismo patrón que "Configuración" en la mayoría de las apps móviles.
+func _al_tocar_ajustes() -> void:
+	_desarmar_confirmacion()
+	menu_pausa.visible = false
+	ajustes.mostrar()
 
 
 func _al_tocar_reiniciar() -> void:

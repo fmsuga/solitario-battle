@@ -1,0 +1,144 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/ajustes_overlay.gd" id="1_ajustes"]
+[ext_resource type="AudioStream" path="res://assets/sonidos/movimiento_exitoso.wav" id="2_sonido"]
+[ext_resource type="StyleBox" path="res://assets/estilos/panel_tarjeta.tres" id="3_panel"]
+[ext_resource type="StyleBox" path="res://assets/estilos/boton_primario.tres" id="4_primario"]
+[ext_resource type="StyleBox" path="res://assets/estilos/boton_primario_hover.tres" id="5_primario_hover"]
+[ext_resource type="StyleBox" path="res://assets/estilos/boton_secundario.tres" id="6_secundario"]
+[ext_resource type="StyleBox" path="res://assets/estilos/boton_secundario_hover.tres" id="7_secundario_hover"]
+[ext_resource type="StyleBox" path="res://assets/estilos/control_pista.tres" id="8_pista"]
+[ext_resource type="StyleBox" path="res://assets/estilos/control_relleno.tres" id="9_relleno"]
+[ext_resource type="FontVariation" path="res://assets/fuentes/noto_sans_titulo.tres" id="10_titulo"]
+[ext_resource type="FontVariation" path="res://assets/fuentes/noto_sans_negrita.tres" id="11_negrita"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fondo"]
+bg_color = Color(0, 0, 0, 0.72)
+
+[node name="AjustesOverlay" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_ajustes")
+
+[node name="Fondo" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+focus_mode = 0
+theme_override_styles/normal = SubResource("StyleBoxFlat_fondo")
+theme_override_styles/hover = SubResource("StyleBoxFlat_fondo")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_fondo")
+theme_override_styles/focus = SubResource("StyleBoxFlat_fondo")
+
+[node name="Centro" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Tarjeta" type="PanelContainer" parent="Centro"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_panel")
+
+[node name="Columna" type="VBoxContainer" parent="Centro/Tarjeta"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Titulo" type="Label" parent="Centro/Tarjeta/Columna"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_colors/font_outline_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_constants/outline_size = 6
+theme_override_fonts/font = ExtResource("10_titulo")
+theme_override_font_sizes/font_size = 42
+text = "AJUSTES"
+horizontal_alignment = 1
+
+[node name="Separador" type="ColorRect" parent="Centro/Tarjeta/Columna"]
+custom_minimum_size = Vector2(64, 3)
+layout_mode = 2
+size_flags_horizontal = 4
+color = Color(0.898, 0.745, 0.447, 0.6)
+
+[node name="EspacioTituloVolumen" type="Control" parent="Centro/Tarjeta/Columna"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+
+[node name="FilaVolumen" type="HBoxContainer" parent="Centro/Tarjeta/Columna"]
+layout_mode = 2
+
+[node name="Etiqueta" type="Label" parent="Centro/Tarjeta/Columna/FilaVolumen"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_fonts/font = ExtResource("11_negrita")
+theme_override_font_sizes/font_size = 20
+text = "Volumen de sonido"
+
+[node name="Porcentaje" type="Label" parent="Centro/Tarjeta/Columna/FilaVolumen"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
+theme_override_fonts/font = ExtResource("11_negrita")
+theme_override_font_sizes/font_size = 20
+text = "70%"
+
+[node name="EspacioEtiquetaControl" type="Control" parent="Centro/Tarjeta/Columna"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+
+[node name="ControlDeslizante" type="HSlider" parent="Centro/Tarjeta/Columna"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+min_value = 0.0
+max_value = 1.0
+step = 0.05
+value = 0.7
+theme_override_constants/grabber_offset = 0
+theme_override_styles/slider = ExtResource("8_pista")
+theme_override_styles/grabber_area = ExtResource("9_relleno")
+theme_override_styles/grabber_area_highlight = ExtResource("9_relleno")
+
+[node name="EspacioControlProbar" type="Control" parent="Centro/Tarjeta/Columna"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+
+[node name="Probar" type="Button" parent="Centro/Tarjeta/Columna"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_fonts/font = ExtResource("11_negrita")
+theme_override_font_sizes/font_size = 19
+theme_override_styles/normal = ExtResource("6_secundario")
+theme_override_styles/hover = ExtResource("7_secundario_hover")
+theme_override_styles/pressed = ExtResource("7_secundario_hover")
+text = "🔊 Probar sonido"
+
+[node name="EspacioProbarCerrar" type="Control" parent="Centro/Tarjeta/Columna"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+
+[node name="Cerrar" type="Button" parent="Centro/Tarjeta/Columna"]
+custom_minimum_size = Vector2(0, 76)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_fonts/font = ExtResource("11_negrita")
+theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = ExtResource("4_primario")
+theme_override_styles/hover = ExtResource("5_primario_hover")
+theme_override_styles/pressed = ExtResource("5_primario_hover")
+text = "Cerrar"
+
+[node name="SonidoPrueba" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("2_sonido")

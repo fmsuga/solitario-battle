@@ -6,3 +6,11 @@ extends Node
 ## dificultad elegida en el selector antes de instanciar el tablero.
 
 var dificultad_seleccionada: int = Carta.Dificultad.FACIL
+
+
+func _ready() -> void:
+	# Se hace acá (un único punto de entrada, corre antes que cualquier
+	# escena) para que el volumen elegido la última vez siga vigente
+	# al reabrir la app, sin tener que repetir esta llamada en cada
+	# escena que reproduce sonido.
+	Configuracion.aplicar_volumen_guardado()

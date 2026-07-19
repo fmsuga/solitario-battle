@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3 uid="uid://c6lu7a0pa25mq"]
+[gd_scene load_steps=19 format=3 uid="uid://c6lu7a0pa25mq"]
 
 [ext_resource type="Script" uid="uid://dpkwbcbtlq1h6" path="res://scripts/tablero_visual.gd" id="1_tablero"]
 [ext_resource type="PackedScene" path="res://scenes/mazo_visual.tscn" id="2_mazo"]
@@ -13,6 +13,7 @@
 [ext_resource type="StyleBox" path="res://assets/estilos/campo_texto_foco.tres" id="11_campo_foco"]
 [ext_resource type="StyleBox" path="res://assets/estilos/chip_estadistica.tres" id="12_chip"]
 [ext_resource type="StyleBox" path="res://assets/estilos/boton_deshabilitado.tres" id="16_deshabilitado"]
+[ext_resource type="PackedScene" path="res://scenes/ajustes_overlay.tscn" id="17_ajustes"]
 [ext_resource type="FontVariation" path="res://assets/fuentes/noto_sans_titulo.tres" id="13_titulo"]
 [ext_resource type="FontVariation" path="res://assets/fuentes/noto_sans_negrita.tres" id="14_negrita"]
 [ext_resource type="FontVariation" path="res://assets/fuentes/merriweather_negrita_cursiva.tres" id="15_merriweather"]
@@ -47,7 +48,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 28
+theme_override_constants/margin_top = 68
 theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 28
 
@@ -55,31 +56,50 @@ theme_override_constants/margin_bottom = 28
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Titulo" type="Label" parent="Margen/Columna" unique_id=618796180]
+[node name="Encabezado" type="HBoxContainer" parent="Margen/Columna"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TituloYEstado" type="VBoxContainer" parent="Margen/Columna/Encabezado"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="Titulo" type="Label" parent="Margen/Columna/Encabezado/TituloYEstado" unique_id=618796180]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
-theme_override_font_sizes/font_size = 30
+theme_override_fonts/font = ExtResource("14_negrita")
+theme_override_font_sizes/font_size = 38
 text = "Solitario Battle"
-horizontal_alignment = 1
+horizontal_alignment = 0
 
-[node name="InfoFila" type="HBoxContainer" parent="Margen/Columna"]
+[node name="InfoFila" type="HBoxContainer" parent="Margen/Columna/Encabezado/TituloYEstado"]
 layout_mode = 2
-theme_override_constants/separation = 24
-alignment = 1
+theme_override_constants/separation = 20
 
-[node name="Estado" type="Label" parent="Margen/Columna/InfoFila" unique_id=1518347081]
+[node name="Estado" type="Label" parent="Margen/Columna/Encabezado/TituloYEstado/InfoFila" unique_id=1518347081]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.68, 0.84, 0.95, 1)
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 28
 text = "Pilas: 0 | Cartas en mazo: 0"
-horizontal_alignment = 1
+horizontal_alignment = 0
 
-[node name="Tiempo" type="Label" parent="Margen/Columna/InfoFila"]
+[node name="Tiempo" type="Label" parent="Margen/Columna/Encabezado/TituloYEstado/InfoFila"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 28
 text = "0:00"
-horizontal_alignment = 1
+horizontal_alignment = 0
+
+[node name="BotonMenu" type="Button" parent="Margen/Columna/Encabezado"]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 36
+theme_override_styles/normal = ExtResource("8_secundario")
+theme_override_styles/hover = ExtResource("9_secundario_hover")
+theme_override_styles/pressed = ExtResource("9_secundario_hover")
+text = "☰"
 
 [node name="Mensaje" type="Label" parent="Margen/Columna" unique_id=2033231723]
 custom_minimum_size = Vector2(0, 56)
@@ -115,21 +135,12 @@ visible = false
 custom_minimum_size = Vector2(0, 84)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_fonts/font = ExtResource("14_negrita")
 theme_override_font_sizes/font_size = 28
+theme_override_styles/normal = ExtResource("6_primario")
+theme_override_styles/hover = ExtResource("7_primario_hover")
+theme_override_styles/pressed = ExtResource("7_primario_hover")
 text = "Terminar partida"
-
-[node name="BotonMenu" type="Button" parent="."]
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -84.0
-offset_top = 28.0
-offset_right = -20.0
-offset_bottom = 92.0
-grow_horizontal = 0
-theme_override_font_sizes/font_size = 30
-text = "☰"
 
 [node name="MenuPausa" type="Control" parent="."]
 visible = false
@@ -220,15 +231,12 @@ text = "Reiniciar partida"
 [node name="Ajustes" type="Button" parent="MenuPausa/Centro/Tarjeta/Columna"]
 custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
-disabled = true
 theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
-theme_override_colors/font_disabled_color = Color(0.6, 0.62, 0.6, 0.55)
 theme_override_fonts/font = ExtResource("14_negrita")
 theme_override_font_sizes/font_size = 21
 theme_override_styles/normal = ExtResource("8_secundario")
 theme_override_styles/hover = ExtResource("9_secundario_hover")
 theme_override_styles/pressed = ExtResource("9_secundario_hover")
-theme_override_styles/disabled = ExtResource("16_deshabilitado")
 text = "Ajustes"
 
 [node name="VolverMenu" type="Button" parent="MenuPausa/Centro/Tarjeta/Columna"]
@@ -498,6 +506,9 @@ theme_override_styles/normal = ExtResource("6_primario")
 theme_override_styles/hover = ExtResource("7_primario_hover")
 theme_override_styles/pressed = ExtResource("7_primario_hover")
 text = "Jugar de nuevo"
+
+[node name="AjustesOverlay" parent="." instance=ExtResource("17_ajustes")]
+layout_mode = 1
 
 [node name="SonidoRepartir" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("3_repartir")
