@@ -5,6 +5,11 @@ extends RefCounted
 
 static var archivo_historial := "user://historial.json"
 
+const PROBABILIDADES_ACUMULADAS_OFICIALES := {
+	"dificil": {2: 0.0018, 3: 0.0091, 4: 0.0229},
+	"facil": {2: 0.0044, 3: 0.0226, 4: 0.0496},
+}
+
 
 static func interpretar_resultado(pilas_finales: int) -> String:
 	if pilas_finales <= 2:
@@ -16,6 +21,55 @@ static func interpretar_resultado(pilas_finales: int) -> String:
 	if pilas_finales <= 10:
 		return "👍 Bueno. Nada mal."
 	return "😅 Bueno... confío en que te irá mejor la próxima vez."
+
+
+## La tabla completa se incorporará como recurso versionado antes del
+## puntaje v2. Por ahora sólo se comunican las probabilidades exactas que
+## pueden derivarse de las referencias oficiales documentadas.
+static func mensaje_rareza(resumen: Dictionary) -> String:
+	var dificultad := str(resumen.get("dificultad", "dificil"))
+	var pilas := int(resumen.get("pilas_finales", 0))
+	var acumuladas: Dictionary = PROBABILIDADES_ACUMULADAS_OFICIALES.get(dificultad, {})
+	if not acumuladas.has(pilas):
+		return "Terminaste con %d pilas. La rareza detallada se incorporará con la tabla estadística completa." % pilas
+	var probabilidad := float(acumuladas[pilas])
+	if pilas > 2:
+		probabilidad -= float(acumuladas[pilas - 1])
+	var nombre_dificultad := "Difícil" if dificultad == "dificil" else "Clásico"
+	return "La probabilidad de terminar con %d pilas es %.2f%% en %s. ¡Felicitaciones!" % [
+		pilas, probabilidad * 100.0, nombre_dificultad,
+	]
+
+
+static func mensaje_analisis_tactico(resumen: Dictionary) -> String:
+	var bloqueos := int(resumen.get("oportunidades_antiguas_bloqueadas", 0))
+	var referencia := int(resumen.get("pilas_referencia", resumen.get("pilas_finales", 0)))
+	var eficiencia := float(resumen.get("eficiencia_tactica", 100.0))
+	var primera_linea := "No bloqueaste oportunidades antiguas." if bloqueos == 0 else "Se bloquearon %d oportunidades antiguas." % bloqueos
+	return "%s Referencia del mazo: %d pilas · Eficiencia táctica: %.0f%%." % [primera_linea, referencia, eficiencia]
+
+
+static func logros_nuevos(resumen: Dictionary, partidas_anteriores: Array) -> Array[String]:
+	if partidas_anteriores.is_empty():
+		return []
+	var logros: Array[String] = []
+	var pilas := int(resumen.get("pilas_finales", 999))
+	var puntaje := int(resumen.get("puntaje", 0))
+	var duracion := int(resumen.get("duracion_segundos", 0))
+	var mejor_pilas := 999
+	var mayor_puntaje := -1
+	var menor_duracion := 999999999
+	for partida in partidas_anteriores:
+		mejor_pilas = mini(mejor_pilas, int(partida.get("pilas_finales", 999)))
+		mayor_puntaje = maxi(mayor_puntaje, int(partida.get("puntaje", 0)))
+		menor_duracion = mini(menor_duracion, int(partida.get("duracion_segundos", 999999999)))
+	if pilas < mejor_pilas:
+		logros.append("🏆 Nueva menor cantidad de pilas.")
+	if puntaje > mayor_puntaje:
+		logros.append("✨ Nuevo mayor puntaje personal.")
+	if duracion < menor_duracion:
+		logros.append("⚡ Nueva partida más rápida.")
+	return logros
 
 
 static func formatear_duracion(segundos: int) -> String:

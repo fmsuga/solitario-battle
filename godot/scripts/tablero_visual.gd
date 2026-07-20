@@ -16,14 +16,16 @@ const TAMANIO_CASILLERO := Vector2(170, 261) # igual al custom_minimum_size de P
 
 const ESTILO_PELIGRO := preload("res://assets/estilos/boton_peligro.tres")
 const ESTILO_PELIGRO_HOVER := preload("res://assets/estilos/boton_peligro_hover.tres")
+const ESTILO_PELIGRO_PRESIONADO := preload("res://assets/estilos/boton_peligro_presionado.tres")
 const ESTILO_SECUNDARIO := preload("res://assets/estilos/boton_secundario.tres")
 const ESTILO_SECUNDARIO_HOVER := preload("res://assets/estilos/boton_secundario_hover.tres")
+const ESTILO_SECUNDARIO_PRESIONADO := preload("res://assets/estilos/boton_secundario_presionado.tres")
 
 @onready var grilla_pilas: GridContainer = $Margen/Columna/TableroScroll/Centro/Pilas
-@onready var boton_mazo: MazoVisual = $Margen/Columna/Mazo
-@onready var boton_finalizar: Button = $Margen/Columna/Finalizar
+@onready var boton_mazo: MazoVisual = $Margen/Columna/MazoYTiempo/Mazo
+@onready var boton_terminar_partida: Button = $Margen/Columna/MazoYTiempo/TerminarPartida
 @onready var estado_label: Label = $Margen/Columna/EncabezadoPanel/Encabezado/TituloYEstado/Estado
-@onready var tiempo_label: Label = $Margen/Columna/EncabezadoPanel/Encabezado/ChipTiempo/Fila/Tiempo
+@onready var tiempo_principal_label: Label = $Margen/Columna/EncabezadoPanel/Encabezado/Reloj/Pantalla/TiempoPrincipal
 @onready var mensaje_label: Label = $Margen/Columna/Mensaje
 
 @onready var boton_menu_hamburguesa: Button = $Margen/Columna/EncabezadoPanel/Encabezado/BotonMenu
@@ -43,6 +45,8 @@ const ESTILO_SECUNDARIO_HOVER := preload("res://assets/estilos/boton_secundario_
 @onready var valor_pilas: Label = $PantallaFin/Centro/Tarjeta/Fila/ZonaDetalle/Estadisticas/ValorPilas
 @onready var valor_movimientos: Label = $PantallaFin/Centro/Tarjeta/Fila/ZonaDetalle/Estadisticas/ValorMovimientos
 @onready var valor_duracion: Label = $PantallaFin/Centro/Tarjeta/Fila/ZonaDetalle/Estadisticas/ValorDuracion
+@onready var analisis_tactico_label: Label = $PantallaFin/Centro/Tarjeta/Fila/ZonaDetalle/AnalisisTactico
+@onready var logros_label: Label = $PantallaFin/Centro/Tarjeta/Fila/ZonaDetalle/Logros
 @onready var campo_nombre: LineEdit = $PantallaFin/Centro/Tarjeta/Fila/ZonaDetalle/Nombre
 @onready var boton_guardar_record: Button = $PantallaFin/Centro/Tarjeta/Fila/ZonaDetalle/GuardarRecord
 @onready var mensaje_guardado_label: Label = $PantallaFin/Centro/Tarjeta/Fila/ZonaDetalle/MensajeGuardado
@@ -58,6 +62,10 @@ const ESTILO_SECUNDARIO_HOVER := preload("res://assets/estilos/boton_secundario_
 var juego := Juego.new(EstadoJuego.dificultad_seleccionada)
 var indice_seleccionado := -1
 var resumen_final: Dictionary = {}
+var _animando_movimiento := false
+var _accion_finalizar_visible := false
+var _animacion_fusion: Tween = null
+var _animacion_accion_final: Tween = null
 
 ## Acciones destructivas (Reiniciar / Volver al menú desde pausa) piden un
 ## segundo toque para ejecutarse, en vez de actuar directo. Guardamos acá
@@ -69,7 +77,7 @@ var _texto_original_por_boton: Dictionary = {}
 
 func _ready() -> void:
 	boton_mazo.pressed.connect(_al_tocar_mazo)
-	boton_finalizar.pressed.connect(_al_tocar_finalizar)
+	boton_terminar_partida.pressed.connect(_al_tocar_finalizar)
 
 	boton_menu_hamburguesa.pressed.connect(_al_tocar_hamburguesa)
 	boton_continuar.pressed.connect(_al_tocar_continuar)
@@ -82,8 +90,6 @@ func _ready() -> void:
 	boton_guardar_record.pressed.connect(_al_tocar_guardar_record)
 	boton_jugar_de_nuevo.pressed.connect(_al_tocar_reiniciar)
 	boton_volver_menu_fin.pressed.connect(_al_tocar_volver_menu)
-
-	temporizador_ui.timeout.connect(_actualizar_tiempo)
 
 	# La grilla arranca con SU ancho fijo (5 columnas de cartas), no con
 	# el ancho que ocupen las pilas que haya en ese momento. Si no, cada
@@ -98,10 +104,11 @@ func _ready() -> void:
 		+ (grilla_pilas.columns - 1) * separacion
 
 	_refrescar_tablero()
+	_actualizar_tiempo()
 
 
 func _al_tocar_mazo() -> void:
-	if juego.esta_terminada():
+	if juego.esta_terminada() or _animando_movimiento:
 		return
 	if not juego.quedan_cartas_en_mano():
 		return
@@ -113,11 +120,15 @@ func _al_tocar_mazo() -> void:
 
 
 func _al_tocar_pila(indice: int) -> void:
-	if juego.esta_terminada():
+	if juego.esta_terminada() or _animando_movimiento:
 		return
 
 	if indice_seleccionado == -1:
 		indice_seleccionado = indice
+		_refrescar_tablero()
+		return
+	if indice_seleccionado == indice:
+		indice_seleccionado = -1
 		_refrescar_tablero()
 		return
 
@@ -133,20 +144,101 @@ func _al_tocar_pila(indice: int) -> void:
 		return
 
 	if juego.intentar_jugada(indice_destino):
-		sonido_movimiento.play()
-		_mostrar_mensaje_temporal("¡Buena jugada!")
+		_confirmar_fusion(indice_destino)
 	else:
 		_mostrar_mensaje_temporal("Ahí no hay coincidencia.")
-	_refrescar_tablero()
+		_refrescar_tablero()
 
 
 func _al_tocar_finalizar() -> void:
-	if juego.esta_terminada() or juego.quedan_cartas_en_mano():
+	if juego.esta_terminada() or juego.quedan_cartas_en_mano() or _animando_movimiento:
 		return
 	juego.finalizar()
+	_actualizar_tiempo()
 	resumen_final = juego.obtener_resumen()
 	_mostrar_pantalla_fin()
 	_refrescar_tablero()
+
+
+func _al_soltar_arrastre(indice_origen: int, posicion_global: Vector2) -> void:
+	var indice_destino := _indice_pila_en_posicion(posicion_global)
+	if indice_destino != -1:
+		_intentar_arrastre(indice_origen, indice_destino)
+
+
+func _intentar_arrastre(indice_origen: int, indice_destino: int) -> void:
+	if _animando_movimiento:
+		return
+	indice_seleccionado = -1
+	if indice_origen == indice_destino or indice_origen != indice_destino + 1:
+		_refrescar_tablero()
+		return
+	if juego.intentar_jugada(indice_destino):
+		_confirmar_fusion(indice_destino)
+	else:
+		_mostrar_mensaje_temporal("Ahí no hay coincidencia.")
+		_refrescar_tablero()
+
+
+func _indice_pila_en_posicion(posicion_global: Vector2) -> int:
+	for visual in grilla_pilas.get_children():
+		if visual is PilaVisual and visual.get_global_rect().has_point(posicion_global):
+			return visual.indice_pila
+	return -1
+
+
+func _confirmar_fusion(indice_destino: int) -> void:
+	_animando_movimiento = true
+	sonido_movimiento.play()
+	_mostrar_mensaje_temporal("¡Buena jugada!")
+	_animar_fusion(indice_destino)
+
+
+func _animar_fusion(indice_destino: int) -> void:
+	var destino := _visual_de_indice(indice_destino)
+	var absorbida := _visual_de_indice(indice_destino + 1)
+	if destino == null or absorbida == null:
+		_refrescar_tablero()
+		_animando_movimiento = false
+		return
+
+	var escala_destino := destino.scale
+	# La fusión se confirma con el mismo lenguaje de la selección: un
+	# acercamiento breve y elástico. La pila que desaparece sólo se apaga;
+	# no se la desplaza hacia la otra, porque eso sugería una interacción
+	# distinta a la de combinar dos pilas adyacentes.
+	var impulso := create_tween().set_parallel(true)
+	_animacion_fusion = impulso
+	impulso.tween_property(destino, "scale", escala_destino * 1.09, 0.12)\
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	impulso.tween_property(absorbida, "scale", absorbida.scale * 0.96, 0.12)\
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	impulso.tween_property(absorbida, "modulate:a", 0.0, 0.12)
+	await impulso.finished
+	if _animacion_fusion != impulso:
+		return
+	if not is_instance_valid(destino) or not is_instance_valid(absorbida):
+		_animacion_fusion = null
+		_animando_movimiento = false
+		return
+
+	var rebote := create_tween()
+	_animacion_fusion = rebote
+	rebote.tween_property(destino, "scale", escala_destino, 0.22)\
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	await rebote.finished
+	if _animacion_fusion != rebote:
+		return
+	_animacion_fusion = null
+	_refrescar_tablero()
+	_animando_movimiento = false
+
+
+func _visual_de_indice(indice: int) -> PilaVisual:
+	for visual in grilla_pilas.get_children():
+		if visual is PilaVisual and visual.indice_pila == indice:
+			return visual
+	return null
 
 
 func _al_tocar_hamburguesa() -> void:
@@ -195,7 +287,7 @@ func _armar_o_confirmar(boton: Button, accion: Callable) -> void:
 	boton.text = "¿Seguro? Tocá de nuevo"
 	boton.add_theme_stylebox_override("normal", ESTILO_PELIGRO)
 	boton.add_theme_stylebox_override("hover", ESTILO_PELIGRO_HOVER)
-	boton.add_theme_stylebox_override("pressed", ESTILO_PELIGRO_HOVER)
+	boton.add_theme_stylebox_override("pressed", ESTILO_PELIGRO_PRESIONADO)
 	aviso_confirmacion.visible = true
 	temporizador_confirmacion.start()
 
@@ -209,7 +301,7 @@ func _desarmar_confirmacion() -> void:
 		_boton_armado.text = _texto_original_por_boton[_boton_armado]
 	_boton_armado.add_theme_stylebox_override("normal", ESTILO_SECUNDARIO)
 	_boton_armado.add_theme_stylebox_override("hover", ESTILO_SECUNDARIO_HOVER)
-	_boton_armado.add_theme_stylebox_override("pressed", ESTILO_SECUNDARIO_HOVER)
+	_boton_armado.add_theme_stylebox_override("pressed", ESTILO_SECUNDARIO_PRESIONADO)
 	_boton_armado = null
 
 
@@ -235,11 +327,15 @@ func _al_tocar_guardar_record() -> void:
 
 
 func _mostrar_pantalla_fin() -> void:
-	interpretacion_label.text = Puntuacion.interpretar_resultado(resumen_final["pilas_finales"])
+	interpretacion_label.text = Puntuacion.mensaje_rareza(resumen_final)
 	valor_puntaje.text = str(resumen_final["puntaje"])
 	valor_pilas.text = str(resumen_final["pilas_finales"])
 	valor_movimientos.text = str(resumen_final["movimientos"])
 	valor_duracion.text = Puntuacion.formatear_duracion(resumen_final["duracion_segundos"])
+	analisis_tactico_label.text = Puntuacion.mensaje_analisis_tactico(resumen_final)
+	var logros := Puntuacion.logros_nuevos(resumen_final, Puntuacion.cargar_historial())
+	logros_label.text = "\n".join(logros)
+	logros_label.visible = not logros.is_empty()
 	mensaje_guardado_label.visible = false
 	boton_guardar_record.disabled = false
 	campo_nombre.editable = true
@@ -277,13 +373,18 @@ func _ocultar_mensaje() -> void:
 
 
 func _actualizar_tiempo() -> void:
+	var tiempo := juego.duracion_segundos_precisa()
+	var segundos_totales := int(tiempo)
+	tiempo_principal_label.text = "%02d:%02d:%02d" % [segundos_totales / 3600, (segundos_totales / 60) % 60, segundos_totales % 60]
 	if juego.esta_terminada():
 		temporizador_ui.stop()
-		return
-	tiempo_label.text = Puntuacion.formatear_duracion(juego.duracion_segundos())
 
 
 func _refrescar_tablero() -> void:
+	if _animacion_fusion != null:
+		_animacion_fusion.kill()
+		_animacion_fusion = null
+		_animando_movimiento = false
 	for hijo in grilla_pilas.get_children():
 		hijo.queue_free()
 
@@ -297,13 +398,42 @@ func _refrescar_tablero() -> void:
 		var visual := ESCENA_PILA.instantiate() as PilaVisual
 		grilla_pilas.add_child(visual)
 		visual.mostrar_pila(juego.tablero.pilas[indice], indice, indice == indice_seleccionado)
-		visual.pressed.connect(_al_tocar_pila.bind(indice))
+		visual.tocada.connect(_al_tocar_pila)
+		visual.arrastre_soltado.connect(_al_soltar_arrastre)
 
 	var cartas_restantes := juego.mazo.quedan_cartas()
-	estado_label.text = "Pilas: %d | Cartas en mazo: %d" % [juego.tablero.cantidad_pilas(), cartas_restantes]
-	boton_mazo.disabled = juego.esta_terminada() or cartas_restantes == 0
+	estado_label.text = "Pilas: %d  ·  Mazo: %d  ·  Mov.: %d" % [juego.tablero.cantidad_pilas(), cartas_restantes, juego.cantidad_jugadas_realizadas]
+	boton_mazo.disabled = juego.esta_terminada()
 	boton_mazo.mostrar_cantidad(cartas_restantes)
-	boton_finalizar.visible = cartas_restantes == 0 and not juego.esta_terminada()
+	var mostrar_finalizar := cartas_restantes == 0 and not juego.esta_terminada()
+	if mostrar_finalizar and not _accion_finalizar_visible:
+		_mostrar_accion_finalizar()
+	elif not mostrar_finalizar:
+		boton_mazo.visible = true
+		boton_mazo.scale = Vector2.ONE
+		boton_terminar_partida.visible = false
+		boton_terminar_partida.scale = Vector2.ONE
+	_accion_finalizar_visible = mostrar_finalizar
+
+
+func _mostrar_accion_finalizar() -> void:
+	# El mazo se cierra sobre su eje horizontal y revela la acción en el
+	# mismo lugar. No hay cambio de color ni efecto de hover: sólo la
+	# transición espacial entre ambas acciones.
+	if _animacion_accion_final != null:
+		_animacion_accion_final.kill()
+	boton_mazo.pivot_offset = boton_mazo.size / 2.0
+	boton_terminar_partida.pivot_offset = boton_terminar_partida.size / 2.0
+	boton_terminar_partida.visible = true
+	boton_terminar_partida.modulate.a = 1.0
+	boton_terminar_partida.scale = Vector2(0.01, 1.0)
+	var transicion := create_tween()
+	_animacion_accion_final = transicion
+	transicion.tween_property(boton_mazo, "scale:x", 0.01, 0.16)\
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	transicion.tween_callback(func() -> void: boton_mazo.visible = false)
+	transicion.tween_property(boton_terminar_partida, "scale:x", 1.0, 0.22)\
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _orden_visual(cantidad: int, columnas: int) -> Array:

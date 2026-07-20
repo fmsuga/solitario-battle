@@ -1,10 +1,11 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene format=3 uid="uid://dgrgw4ps8cyht"]
 
-[ext_resource type="Script" path="res://scripts/records_visual.gd" id="1_script"]
-[ext_resource type="FontFile" path="res://assets/fuentes/NotoSans-Variable.ttf" id="2_noto"]
+[ext_resource type="Script" uid="uid://db2a8tc6jahqp" path="res://scripts/records_visual.gd" id="1_script"]
+[ext_resource type="FontFile" uid="uid://3he8ven8j702" path="res://assets/fuentes/NotoSans-Variable.ttf" id="2_noto"]
 [ext_resource type="FontVariation" path="res://assets/fuentes/merriweather_negrita_cursiva.tres" id="3_merriweather"]
 [ext_resource type="StyleBox" path="res://assets/estilos/boton_secundario.tres" id="4_sec"]
 [ext_resource type="StyleBox" path="res://assets/estilos/boton_secundario_hover.tres" id="5_sec_hover"]
+[ext_resource type="StyleBox" path="res://assets/estilos/boton_secundario_presionado.tres" id="6_sec_presionado"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 content_margin_left = 0.0
@@ -17,175 +18,179 @@ border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.898, 0.745, 0.447, 0.45)
-corner_radius_top_left = 0
-corner_radius_top_right = 0
 corner_radius_bottom_right = 16
 corner_radius_bottom_left = 16
 shadow_color = Color(0, 0, 0, 0.3)
 shadow_size = 12
 
-[node name="PantallaRecords" type="Control"]
+[node name="PantallaRecords" type="Control" unique_id=1207279298]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="Fondo" type="ColorRect" parent="."]
+[node name="Fondo" type="ColorRect" parent="." unique_id=884449198]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 color = Color(0.0627451, 0.172549, 0.145098, 1)
 
-[node name="Margen" type="MarginContainer" parent="."]
+[node name="Margen" type="MarginContainer" parent="." unique_id=1733653829]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_constants/margin_left = 36
 theme_override_constants/margin_top = 32
 theme_override_constants/margin_right = 36
 theme_override_constants/margin_bottom = 36
 
-[node name="Columna" type="VBoxContainer" parent="Margen"]
+[node name="Columna" type="VBoxContainer" parent="Margen" unique_id=1396791825]
 layout_mode = 2
 theme_override_constants/separation = 0
 
-[node name="Encabezado" type="HBoxContainer" parent="Margen/Columna"]
+[node name="Encabezado" type="HBoxContainer" parent="Margen/Columna" unique_id=967967776]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="Titulo" type="Label" parent="Margen/Columna/Encabezado"]
+[node name="Titulo" type="Label" parent="Margen/Columna/Encabezado" unique_id=1261777217]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
+theme_override_colors/font_outline_color = Color(0.8784314, 0.7294118, 0.4392157, 1)
+theme_override_constants/outline_size = 5
 theme_override_fonts/font = ExtResource("3_merriweather")
 theme_override_font_sizes/font_size = 38
 text = "Récords"
 
-[node name="Espaciador" type="Control" parent="Margen/Columna/Encabezado"]
+[node name="Espaciador" type="Control" parent="Margen/Columna/Encabezado" unique_id=1808506790]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="BotonVolver" type="Button" parent="Margen/Columna/Encabezado"]
+[node name="BotonVolver" type="Button" parent="Margen/Columna/Encabezado" unique_id=1434915676]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.855, 0.82, 0.71, 1)
+theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_fonts/font = ExtResource("2_noto")
 theme_override_font_sizes/font_size = 20
 theme_override_styles/normal = ExtResource("4_sec")
+theme_override_styles/pressed = ExtResource("6_sec_presionado")
 theme_override_styles/hover = ExtResource("5_sec_hover")
-theme_override_styles/pressed = ExtResource("5_sec_hover")
 text = "← Volver"
 
-[node name="Separador" type="HSeparator" parent="Margen/Columna"]
+[node name="Separador" type="HSeparator" parent="Margen/Columna" unique_id=778682276]
 layout_mode = 2
-theme_override_colors/separator = Color(0.898, 0.745, 0.447, 0.3)
 theme_override_constants/separation = 0
 
-[node name="Tabs" type="HBoxContainer" parent="Margen/Columna"]
+[node name="Tabs" type="HBoxContainer" parent="Margen/Columna" unique_id=532011248]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="BotonMundial" type="Button" parent="Margen/Columna/Tabs"]
+[node name="BotonMundial" type="Button" parent="Margen/Columna/Tabs" unique_id=202244870]
 custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_noto")
 theme_override_font_sizes/font_size = 20
-text = "🌍  Mundial"
+text = "  Global  "
 
-[node name="BotonPersonal" type="Button" parent="Margen/Columna/Tabs"]
+[node name="BotonPersonal" type="Button" parent="Margen/Columna/Tabs" unique_id=2114107447]
 custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_noto")
 theme_override_font_sizes/font_size = 20
-text = "📱  Mis récords"
+text = "  Mis récords  "
 
-[node name="PanelTabla" type="PanelContainer" parent="Margen/Columna"]
+[node name="PanelTabla" type="PanelContainer" parent="Margen/Columna" unique_id=461685663]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
-[node name="MargenInterior" type="MarginContainer" parent="Margen/Columna/PanelTabla"]
+[node name="MargenInterior" type="MarginContainer" parent="Margen/Columna/PanelTabla" unique_id=1925484766]
 layout_mode = 2
 theme_override_constants/margin_left = 20
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 16
 
-[node name="Interior" type="VBoxContainer" parent="Margen/Columna/PanelTabla/MargenInterior"]
+[node name="Interior" type="VBoxContainer" parent="Margen/Columna/PanelTabla/MargenInterior" unique_id=1898799498]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Estado" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior"]
+[node name="Estado" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior" unique_id=1153789417]
+visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0.549, 0.655, 0.604, 1)
 theme_override_fonts/font = ExtResource("2_noto")
 theme_override_font_sizes/font_size = 20
-text = ""
-visible = false
 
-[node name="Scroll" type="ScrollContainer" parent="Margen/Columna/PanelTabla/MargenInterior/Interior"]
+[node name="Scroll" type="ScrollContainer" parent="Margen/Columna/PanelTabla/MargenInterior/Interior" unique_id=985878313]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="Grilla" type="GridContainer" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll"]
+[node name="Grilla" type="GridContainer" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll" unique_id=1837580083]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/h_separation = 24
 theme_override_constants/v_separation = 14
 columns = 8
 
-[node name="ColN" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla"]
+[node name="ColN" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla" unique_id=199402996]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
 theme_override_fonts/font = ExtResource("2_noto")
 theme_override_font_sizes/font_size = 16
 text = "#"
 
-[node name="ColJugador" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla"]
+[node name="ColJugador" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla" unique_id=601577728]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
 theme_override_fonts/font = ExtResource("2_noto")
 theme_override_font_sizes/font_size = 16
 text = "Jugador"
 
-[node name="ColPuntaje" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla"]
+[node name="ColPuntaje" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla" unique_id=1636550385]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
 theme_override_fonts/font = ExtResource("2_noto")
 theme_override_font_sizes/font_size = 16
 text = "Puntaje"
 
-[node name="ColDificultad" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla"]
+[node name="ColDificultad" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla" unique_id=186289823]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
 theme_override_fonts/font = ExtResource("2_noto")
 theme_override_font_sizes/font_size = 16
 text = "Dificultad"
 
-[node name="ColPilas" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla"]
+[node name="ColPilas" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla" unique_id=182569361]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
 theme_override_fonts/font = ExtResource("2_noto")
 theme_override_font_sizes/font_size = 16
 text = "Pilas"
 
-[node name="ColMovimientos" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla"]
+[node name="ColMovimientos" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla" unique_id=681623300]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
 theme_override_fonts/font = ExtResource("2_noto")
 theme_override_font_sizes/font_size = 16
 text = "Movim."
 
-[node name="ColDuracion" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla"]
+[node name="ColDuracion" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla" unique_id=1327381639]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
 theme_override_fonts/font = ExtResource("2_noto")
 theme_override_font_sizes/font_size = 16
 text = "Duración"
 
-[node name="ColFecha" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla"]
+[node name="ColFecha" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla" unique_id=1850162200]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
 theme_override_fonts/font = ExtResource("2_noto")

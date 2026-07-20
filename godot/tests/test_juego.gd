@@ -158,3 +158,50 @@ func test_resumen_incluye_la_dificultad() -> void:
 	var juego := Juego.new(Carta.Dificultad.FACIL)
 	juego.finalizar()
 	assert_eq(juego.obtener_resumen()["dificultad"], "facil")
+
+
+func test_jugada_nueva_que_bloquea_una_antigua_se_registra() -> void:
+	var juego := Juego.new()
+	# La jugada 0 (oros) es antigua. La 2 también es válida, pero al
+	# resolverla cambia el tope de la tercera pila y bloquea la primera.
+	for carta in [
+		Carta.new(Carta.Palo.OROS, 1), Carta.new(Carta.Palo.COPAS, 2),
+		Carta.new(Carta.Palo.OROS, 3), Carta.new(Carta.Palo.BASTOS, 4),
+		Carta.new(Carta.Palo.OROS, 5),
+	]:
+		juego.tablero.agregar_carta_nueva(carta)
+
+	assert_true(juego.intentar_jugada(2))
+	assert_eq(juego.oportunidades_antiguas_bloqueadas, 1)
+	assert_eq(juego.decisiones_con_bloqueo, 1)
+
+
+func test_jugada_nueva_que_no_altera_la_antigua_no_es_bloqueo() -> void:
+	var juego := Juego.new()
+	for carta in [
+		Carta.new(Carta.Palo.OROS, 1), Carta.new(Carta.Palo.COPAS, 2),
+		Carta.new(Carta.Palo.OROS, 3), Carta.new(Carta.Palo.BASTOS, 4),
+		Carta.new(Carta.Palo.COPAS, 5), Carta.new(Carta.Palo.BASTOS, 6),
+	]:
+		juego.tablero.agregar_carta_nueva(carta)
+
+	# 0 es válida por oros; 3 es válida por bastos y no toca sus pilas.
+	assert_true(juego.intentar_jugada(3))
+	assert_eq(juego.oportunidades_antiguas_bloqueadas, 0)
+
+
+func test_referencia_viejo_primero_y_eficiencia_usan_la_misma_mano() -> void:
+	var juego := Juego.new()
+	# El último elemento se reparte primero: Oros 1, Copas 2, Oros 3.
+	juego.cartas_iniciales = [
+		Carta.new(Carta.Palo.OROS, 3), Carta.new(Carta.Palo.COPAS, 2), Carta.new(Carta.Palo.OROS, 1),
+	]
+	juego.cantidad_cartas_inicial = 3
+	for carta in [
+		Carta.new(Carta.Palo.OROS, 1), Carta.new(Carta.Palo.COPAS, 2), Carta.new(Carta.Palo.OROS, 3),
+	]:
+		juego.tablero.agregar_carta_nueva(carta)
+
+	assert_eq(juego.pilas_referencia_viejo_primero(), 2)
+	assert_true(juego.intentar_jugada(0))
+	assert_eq(juego.eficiencia_tactica(), 100.0)

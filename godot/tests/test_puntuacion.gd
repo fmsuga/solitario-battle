@@ -126,6 +126,18 @@ func test_mensaje_comparacion_usa_promedio_reciente_con_diez_partidas() -> void:
 	)
 
 
+func test_mensaje_rareza_usa_probabilidades_documentadas_exactas() -> void:
+	assert_string_contains(Puntuacion.mensaje_rareza({"dificultad": "dificil", "pilas_finales": 2}), "0.18%")
+	# La probabilidad exacta de 3 se obtiene de P(≤3) - P(≤2).
+	assert_string_contains(Puntuacion.mensaje_rareza({"dificultad": "dificil", "pilas_finales": 3}), "0.73%")
+
+
+func test_logros_nuevos_detecta_pilas_puntaje_y_duracion() -> void:
+	var anteriores := [{"pilas_finales": 5, "puntaje": 100, "duracion_segundos": 90}]
+	var logros := Puntuacion.logros_nuevos({"pilas_finales": 4, "puntaje": 110, "duracion_segundos": 80}, anteriores)
+	assert_eq(logros.size(), 3)
+
+
 func _escribir_historial_temporal(datos: Array) -> void:
 	var archivo := FileAccess.open(ARCHIVO_TEMPORAL, FileAccess.WRITE)
 	archivo.store_string(JSON.stringify(datos))

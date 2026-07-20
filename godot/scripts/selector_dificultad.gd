@@ -13,17 +13,17 @@ var ESCENA_MENU := load("res://scenes/menu_principal.tscn")
 ## Posición Y (dentro de cada caja) donde las cartas quedan escondidas,
 ## tapadas por la tapa de la caja — y a dónde vuelven las 3 tarjetas
 ## nuevas que se instancien la próxima vez que se entra a esta pantalla.
-const Y_ESCONDIDA := 210.0
+const Y_ESCONDIDA := 230.0
 ## Cuánto asoma cada carta por encima de la tapa al abrirse: la primera
 ## apenas se asoma, la del medio bastante más, la de adelante es la que
 ## más sale — así se leen como una fila de cartas deslizándose hacia
 ## afuera, no como un abanico girado.
 const Y_ASOMOS := [100.0, 55.0, 5.0]
-const DEMORA_ENTRE_CARTAS := 0.09
-const DURACION_ASOMO := 0.32
+const DEMORA_ENTRE_CARTAS := 0.13
+const DURACION_ASOMO := 0.62
 ## Tiempo que se deja ver la animación completa antes de pasar de
 ## pantalla — lo pidió así: "que lo muestre un segundito".
-const ESPERA_ANTES_DE_ENTRAR := 1.0
+const ESPERA_ANTES_DE_ENTRAR := 1.65
 
 @onready var boton_facil: Button = $Centro/Columna/Tarjetas/Facil/Toque
 @onready var boton_dificil: Button = $Centro/Columna/Tarjetas/Dificil/Toque
@@ -36,11 +36,9 @@ func _ready() -> void:
 	boton_facil.pressed.connect(_al_elegir.bind(Carta.Dificultad.FACIL, cartas_facil))
 	boton_dificil.pressed.connect(_al_elegir.bind(Carta.Dificultad.DIFICIL, cartas_dificil))
 	boton_volver.pressed.connect(_al_tocar_volver)
+	cartas_facil.visible = false
+	cartas_dificil.visible = false
 
-	# Entrada suave en vez de aparecer de golpe, mismo criterio que los
-	# overlays de pausa/fin/ajustes (ver tablero_visual.gd).
-	modulate.a = 0.0
-	create_tween().tween_property(self, "modulate:a", 1.0, 0.2)
 
 
 func _al_elegir(dificultad: int, cartas: Control) -> void:
@@ -49,7 +47,9 @@ func _al_elegir(dificultad: int, cartas: Control) -> void:
 	# dispare otra selección o interrumpa la que ya está en curso.
 	boton_facil.disabled = true
 	boton_dificil.disabled = true
+	boton_volver.disabled = true
 
+	cartas.visible = true
 	_abrir_caja(cartas)
 
 	await get_tree().create_timer(ESPERA_ANTES_DE_ENTRAR).timeout

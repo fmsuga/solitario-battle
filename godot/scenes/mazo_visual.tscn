@@ -2,6 +2,8 @@
 
 [ext_resource type="Script" uid="uid://cm8fulvxnwmok" path="res://scripts/mazo_visual.gd" id="1_mazo"]
 [ext_resource type="Texture2D" uid="uid://diqp8mwk2315q" path="res://assets/cartas_img/dorso.png" id="2_dorso"]
+[ext_resource type="StyleBox" uid="uid://6dgh1k20a3xf" path="res://assets/estilos/insignia_contador.tres" id="3_insignia"]
+[ext_resource type="FontFile" uid="uid://dwgnmxjsnft5y" path="res://assets/fuentes/Merriweather-Italic-Variable.ttf" id="4_o0t6d"]
 
 [node name="MazoVisual" type="Button" unique_id=1071115551]
 custom_minimum_size = Vector2(170, 261)
@@ -26,6 +28,8 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_right = 30.0
+offset_bottom = 12.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -43,31 +47,34 @@ texture = ExtResource("2_dorso")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="FondoContador" type="ColorRect" parent="." unique_id=1623912459]
+[node name="Insignia" type="Panel" parent="." unique_id=1339924889]
 layout_mode = 1
-anchors_preset = -1
-anchor_top = 0.86
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = -25.0
+offset_top = -21.0
+offset_right = 17.0
+offset_bottom = 10.0
 grow_horizontal = 2
-grow_vertical = 0
+grow_vertical = 2
 mouse_filter = 2
-color = Color(0.2005038, 0.103097, 0.23224753, 0.81960785)
+theme_override_styles/panel = ExtResource("3_insignia")
 
-[node name="Cantidad" type="Label" parent="." unique_id=1745541479]
+[node name="Cantidad" type="Label" parent="Insignia" unique_id=1186773391]
 layout_mode = 1
-anchors_preset = -1
-anchor_top = 0.86
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 2.0
-offset_top = -5.4600067
-offset_right = 2.0
-offset_bottom = 1.0
 grow_horizontal = 2
-grow_vertical = 0
-theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
-theme_override_font_sizes/font_size = 22
-text = "x40"
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(1, 1, 1, 1)
+theme_override_constants/outline_size = 5
+theme_override_fonts/font = ExtResource("4_o0t6d")
+theme_override_font_sizes/font_size = 24
+text = "40"
 horizontal_alignment = 1
 vertical_alignment = 1

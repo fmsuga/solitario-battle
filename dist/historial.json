@@ -1,0 +1,13 @@
+[
+  {
+    "id_partida": "29fb5601-747d-4c2c-b8fb-86fa9cf9604b",
+    "version_esquema": 1,
+    "origen": "local",
+    "fecha": "2026-07-20 12:35",
+    "dificultad": "facil",
+    "duracion_segundos": 361,
+    "movimientos": 28,
+    "pilas_finales": 12,
+    "puntaje": 280
+  }
+]

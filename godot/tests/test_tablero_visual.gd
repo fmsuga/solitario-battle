@@ -10,13 +10,16 @@ func test_flujo_visual_reparte_valida_invalida_y_finaliza() -> void:
 
 	vista._al_tocar_mazo()
 	assert_eq(vista.juego.tablero.cantidad_pilas(), 1)
-	assert_string_contains(vista.mensaje_label.text, "Carta repartida")
+	assert_eq(vista.mensaje_label.text, "")
 
 	vista.juego.tablero = Tablero.new()
 	vista.juego.tablero.agregar_carta_nueva(Carta.new(Carta.Palo.OROS, 1))
 	vista.juego.tablero.agregar_carta_nueva(Carta.new(Carta.Palo.COPAS, 4))
 	vista.juego.tablero.agregar_carta_nueva(Carta.new(Carta.Palo.ESPADAS, 7))
 	vista._refrescar_tablero()
+	vista._al_tocar_pila(1)
+	vista._al_tocar_pila(1)
+	assert_eq(vista.indice_seleccionado, -1)
 	vista._al_tocar_pila(1)
 	vista._al_tocar_pila(0)
 	assert_string_contains(vista.mensaje_label.text, "no hay coincidencia")
@@ -29,10 +32,26 @@ func test_flujo_visual_reparte_valida_invalida_y_finaliza() -> void:
 	vista._refrescar_tablero()
 	vista._al_tocar_pila(1)
 	vista._al_tocar_pila(0)
-	assert_string_contains(vista.mensaje_label.text, "Jugada válida")
+	assert_string_contains(vista.mensaje_label.text, "Buena jugada")
 	assert_eq(vista.juego.tablero.cantidad_pilas(), 2)
+	while vista._animando_movimiento:
+		await get_tree().process_frame
+
+	vista.juego.tablero = Tablero.new()
+	vista.juego.tablero.agregar_carta_nueva(Carta.new(Carta.Palo.OROS, 1))
+	vista.juego.tablero.agregar_carta_nueva(Carta.new(Carta.Palo.COPAS, 4))
+	vista.juego.tablero.agregar_carta_nueva(Carta.new(Carta.Palo.BASTOS, 1))
+	vista._refrescar_tablero()
+	vista._intentar_arrastre(1, 0)
+	assert_eq(vista.juego.tablero.cantidad_pilas(), 2)
+	while vista._animando_movimiento:
+		await get_tree().process_frame
 
 	vista.juego.mazo.cartas.clear()
-	vista._verificar_fin_de_partida()
+	vista._refrescar_tablero()
+	vista._al_tocar_mazo()
+	assert_false(vista.juego.esta_terminada())
+	assert_true(vista.boton_terminar_partida.visible)
+	vista._al_tocar_finalizar()
 	assert_true(vista.juego.esta_terminada())
-	assert_string_contains(vista.mensaje_label.text, "Partida terminada")
+	assert_true(vista.pantalla_fin.visible)

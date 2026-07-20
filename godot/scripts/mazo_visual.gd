@@ -7,11 +7,11 @@ extends Button
 ## Tocar el mazo reparte la siguiente carta (tablero_visual.gd escucha
 ## la señal "pressed" heredada de Button, igual que antes).
 
-@onready var cantidad_label: Label = $Cantidad
+@onready var cantidad_label: Label = $Insignia/Cantidad
 
 
 func mostrar_cantidad(cartas_restantes: int) -> void:
 	if cartas_restantes == 0:
-		cantidad_label.text = "Vacío"
+		cantidad_label.text = "0"
 	else:
-		cantidad_label.text = "x%d" % cartas_restantes
+		cantidad_label.text = str(cartas_restantes)
