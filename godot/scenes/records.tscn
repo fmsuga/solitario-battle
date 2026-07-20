@@ -1,0 +1,150 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/records_visual.gd" id="1_script"]
+[ext_resource type="FontFile" path="res://assets/fuentes/NotoSans-Variable.ttf" id="2_noto"]
+[ext_resource type="FontVariation" path="res://assets/fuentes/merriweather_negrita_cursiva.tres" id="3_merriweather"]
+[ext_resource type="StyleBox" path="res://assets/estilos/panel_tarjeta.tres" id="4_panel"]
+
+[node name="PantallaRecords" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_script")
+
+[node name="Fondo" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.0627451, 0.172549, 0.145098, 1)
+
+[node name="Margen" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 36
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 36
+
+[node name="Columna" type="VBoxContainer" parent="Margen"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Encabezado" type="HBoxContainer" parent="Margen/Columna"]
+layout_mode = 2
+
+[node name="Titulo" type="Label" parent="Margen/Columna/Encabezado"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
+theme_override_fonts/font = ExtResource("3_merriweather")
+theme_override_font_sizes/font_size = 40
+text = "Récords"
+
+[node name="Espaciador" type="Control" parent="Margen/Columna/Encabezado"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BotonVolver" type="Button" parent="Margen/Columna/Encabezado"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_noto")
+theme_override_font_sizes/font_size = 22
+text = "Volver"
+
+[node name="Tabs" type="HBoxContainer" parent="Margen/Columna"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="BotonMundial" type="Button" parent="Margen/Columna/Tabs"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_noto")
+theme_override_font_sizes/font_size = 22
+text = "🌍 Mundial"
+
+[node name="BotonPersonal" type="Button" parent="Margen/Columna/Tabs"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_noto")
+theme_override_font_sizes/font_size = 22
+text = "📱 Mis récords"
+
+[node name="Estado" type="Label" parent="Margen/Columna"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.549, 0.655, 0.604, 1)
+theme_override_fonts/font = ExtResource("2_noto")
+theme_override_font_sizes/font_size = 20
+text = ""
+visible = false
+
+[node name="PanelTabla" type="PanelContainer" parent="Margen/Columna"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = ExtResource("4_panel")
+
+[node name="Scroll" type="ScrollContainer" parent="Margen/Columna/PanelTabla"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Grilla" type="GridContainer" parent="Margen/Columna/PanelTabla/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 18
+theme_override_constants/v_separation = 10
+columns = 8
+
+[node name="ColN" type="Label" parent="Margen/Columna/PanelTabla/Scroll/Grilla"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
+theme_override_fonts/font = ExtResource("2_noto")
+theme_override_font_sizes/font_size = 18
+text = "#"
+
+[node name="ColJugador" type="Label" parent="Margen/Columna/PanelTabla/Scroll/Grilla"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
+theme_override_fonts/font = ExtResource("2_noto")
+theme_override_font_sizes/font_size = 18
+text = "Jugador"
+
+[node name="ColPuntaje" type="Label" parent="Margen/Columna/PanelTabla/Scroll/Grilla"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
+theme_override_fonts/font = ExtResource("2_noto")
+theme_override_font_sizes/font_size = 18
+text = "Puntaje"
+
+[node name="ColDificultad" type="Label" parent="Margen/Columna/PanelTabla/Scroll/Grilla"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
+theme_override_fonts/font = ExtResource("2_noto")
+theme_override_font_sizes/font_size = 18
+text = "Dificultad"
+
+[node name="ColPilas" type="Label" parent="Margen/Columna/PanelTabla/Scroll/Grilla"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
+theme_override_fonts/font = ExtResource("2_noto")
+theme_override_font_sizes/font_size = 18
+text = "Pilas"
+
+[node name="ColMovimientos" type="Label" parent="Margen/Columna/PanelTabla/Scroll/Grilla"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
+theme_override_fonts/font = ExtResource("2_noto")
+theme_override_font_sizes/font_size = 18
+text = "Movim."
+
+[node name="ColDuracion" type="Label" parent="Margen/Columna/PanelTabla/Scroll/Grilla"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
+theme_override_fonts/font = ExtResource("2_noto")
+theme_override_font_sizes/font_size = 18
+text = "Duración"
+
+[node name="ColFecha" type="Label" parent="Margen/Columna/PanelTabla/Scroll/Grilla"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
+theme_override_fonts/font = ExtResource("2_noto")
+theme_override_font_sizes/font_size = 18
+text = "Fecha"

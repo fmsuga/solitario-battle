@@ -222,6 +222,13 @@ func _al_tocar_guardar_record() -> void:
 	if nombre.is_empty():
 		nombre = "Jugador"
 	Puntuacion.guardar_puntaje(nombre, resumen_final)
+
+	EstadoJuego.ultimo_registro_guardado = resumen_final.duplicate()
+	EstadoJuego.ultimo_registro_guardado["jugador"] = nombre
+	# Fuego y olvido: si falla (sin conexión, Supabase caído) no rompe
+	# nada, el guardado local de arriba ya es la fuente de verdad.
+	RecordsOnline.enviar_record(nombre, resumen_final)
+
 	mensaje_guardado_label.visible = true
 	boton_guardar_record.disabled = true
 	campo_nombre.editable = false

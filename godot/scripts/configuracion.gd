@@ -28,6 +28,35 @@ static func guardar_volumen(volumen: float) -> void:
 		archivo.store_string(JSON.stringify(perfil))
 
 
+## Identificador anónimo y estable del dispositivo, usado para separar
+## "Mis récords" del ranking mundial en Supabase (ver records_online.gd).
+## Se genera una sola vez y se persiste en el mismo archivo de perfil.
+static func obtener_device_id() -> String:
+	var perfil := _cargar_perfil()
+	if perfil.has("device_id"):
+		return perfil["device_id"]
+	var nuevo_id := _generar_uuid_v4()
+	perfil["device_id"] = nuevo_id
+	var archivo := FileAccess.open(ARCHIVO_PERFIL, FileAccess.WRITE)
+	if archivo != null:
+		archivo.store_string(JSON.stringify(perfil))
+	return nuevo_id
+
+
+static func _generar_uuid_v4() -> String:
+	var bytes := PackedByteArray()
+	bytes.resize(16)
+	for i in range(16):
+		bytes[i] = randi() % 256
+	bytes[6] = (bytes[6] & 0x0f) | 0x40  # versión 4
+	bytes[8] = (bytes[8] & 0x3f) | 0x80  # variante RFC 4122
+	var hex := bytes.hex_encode()
+	return "%s-%s-%s-%s-%s" % [
+		hex.substr(0, 8), hex.substr(8, 4), hex.substr(12, 4),
+		hex.substr(16, 4), hex.substr(20, 12),
+	]
+
+
 ## Aplica el volumen guardado al bus Master. Se llama una sola vez al
 ## arrancar la app (ver EstadoJuego._ready), para que el volumen elegido
 ## la última vez siga vigente al reabrir el juego.
