@@ -19,7 +19,7 @@ static func interpretar_resultado(pilas_finales: int) -> String:
 
 
 static func formatear_duracion(segundos: int) -> String:
-	var minutos := segundos / 60
+	var minutos := int(segundos) / 60
 	var segundos_restantes := segundos % 60
 	return "%dm %ds" % [minutos, segundos_restantes] if minutos else "%ds" % segundos_restantes
 
@@ -234,5 +234,5 @@ static func _suma(valores: Array) -> int:
 static func _mediana(valores: Array[int]) -> float:
 	var ordenados := valores.duplicate()
 	ordenados.sort()
-	var medio := ordenados.size() / 2
+	var medio: int = ordenados.size() / 2
 	return ordenados[medio] if ordenados.size() % 2 else (ordenados[medio - 1] + ordenados[medio]) / 2.0

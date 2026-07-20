@@ -1,196 +1,108 @@
-# Solitario Battle → Godot → Android (Play Store)
-### Plan de proyecto
+# Solitario Battle → Godot → Android
 
-## Resumen ejecutivo
+## Estado al 20/07/2026
 
-Hoy el juego es una app de escritorio en Python/Tkinter, con la lógica del juego (`cartas.py`, `tablero.py`, `reglas.py`, `juego.py`, `puntuacion.py`) ya desacoplada de la interfaz. Eso es la mitad difícil del trabajo, ya hecha.
+La migración ya superó el prototipo: Godot 4.7 contiene lógica en GDScript, GUT, tablero táctil con cartas reales, selector de dificultad, HUD, pausa, pantalla final, historial local y récords online. Existe un APK exportado.
 
-El objetivo es migrar a **Godot 4**, reescribiendo la lógica en GDScript y construyendo una interfaz táctil nueva, para exportar un **AAB firmado** que cumpla los requisitos de Google Play (target API 36) y publicarlo.
+Validación actual: 45/46 pruebas de GUT pasan. La prueba visual `test_tablero_visual.gd` está desactualizada respecto de la UX actual y es el bloqueo inmediato de calidad. No introducir funcionalidad nueva hasta dejarla verde.
 
-Se trabaja en **8 fases**, cada una con un resultado concreto y verificable antes de avanzar a la siguiente. Nunca se avanza de fase sin haber cerrado la anterior — la idea es ir construyendo sobre una base que ya sabemos que funciona, no acumular deuda técnica invisible.
+## Fases cerradas
 
----
+- [x] Toolchain base Godot → Android: proyecto Mobile y APK existente.
+- [x] Lógica de cartas, tablero, reglas, juego y puntuación en GDScript.
+- [x] Pruebas unitarias GUT para lógica.
+- [x] Tablero jugable con cartas reales y reparto.
+- [x] Interacción táctil para jugadas.
+- [x] Selector Fácil/Difícil, HUD, pausa, resumen, historial local y récords.
+- [x] Orientación vertical y tema base responsive.
+- [x] Récords: tabla, fallback local y envío no bloqueante a Supabase.
 
-## Fase 0 — Entorno y validación del toolchain
+## Protocolo de continuidad (obligatorio)
 
-**Objetivo:** probar que "Godot → APK en un dispositivo real" funciona ANTES de tocar una sola línea del juego. Esto aísla los problemas de infraestructura (que son los que mataron el plan con Kivy) de los problemas de código.
+Este archivo es la fuente única de verdad del progreso. Antes de iniciar una tarea, contrastar su estado con el código, tests y `git status`; no asumir que un documento histórico representa el árbol actual.
 
-Tareas:
-1. Instalar Godot 4 (versión estable más reciente).
-2. Configurar Android SDK/NDK y las plantillas de exportación de Godot (Editor Settings → Export → Android).
-3. Crear un proyecto vacío con un solo botón que diga "Hola".
-4. Generar un export preset de Android, firmar con un keystore de debug, e instalar el APK en un celular real o emulador.
+Al completar trabajo:
 
-**Criterio de "hecho":** ver el botón "Hola" andando en un Android real. Si esto no funciona, no seguimos — se soluciona acá, no más adelante con el proyecto completo encima.
+1. Actualizar este roadmap en la misma sesión: marcar tareas, eliminar las obsoletas y agregar descubrimientos en la etapa correspondiente.
+2. Registrar al final un resumen breve, la próxima tarea recomendada y decisiones técnicas relevantes.
+3. No depender del historial de conversación. Referenciar aquí los documentos, pruebas, archivos y criterios necesarios para retomar.
+4. Antes de cambios significativos, mostrar el diff propuesto y esperar aprobación explícita del usuario.
 
----
+## Etapa 1 — Estabilización (prioridad máxima)
 
-## Fase 1 — Portar la lógica pura (sin gráficos)
+Objetivo: una build reproducible y una suite confiable antes de cambiar reglas, puntuación o UI.
 
-**Objetivo:** trasladar las reglas del juego a GDScript, sin ninguna interfaz todavía.
+1. Actualizar `test_tablero_visual.gd` al contrato vigente de `tablero_visual.gd`; no restaurar métodos eliminados solo para satisfacer el test.
+2. Ejecutar la suite completa y registrar 46/46 verdes.
+3. Probar en Android físico: reparto, jugada válida/inválida, pausa, reinicio, guardar récord y volver al menú.
+4. Verificar export preset, SDK y firma de debug; documentar el comando de build reproducible.
 
-Tareas:
-1. Traducir `cartas.py` → `Carta`, `Palo`, `Mazo` como clases GDScript (`class_name`).
-2. Traducir `tablero.py` → `Pila`, `Tablero`.
-3. Traducir `reglas.py` → funciones de validación de jugada.
-4. Traducir `juego.py` → clase `Juego` (estado, puntaje, cronómetro).
-5. Traducir `puntuacion.py` → guardado de historial (en Godot esto se hace con `FileAccess` sobre `user://historial.json`, reemplaza a `recursos.py`).
-6. Escribir tests equivalentes a los que ya tenés (`test_cartas.py`, `test_reglas.py`, `test_tablero.py`, `test_juego.py`, `test_puntuacion.py`) usando el framework **GUT** (Godot Unit Test). Tus tests actuales en Python son literalmente la especificación a cumplir.
+Criterio de cierre: pruebas verdes y recorrido manual completo en un dispositivo Android.
 
-**Criterio de "hecho":** todos los tests de GUT pasan en verde, replicando el comportamiento de los tests de Python. Cero UI todavía.
+## Etapa 2 — Sistema de resultados y puntuación
 
----
+Objetivo: que el resultado sea justo, explicable y motivador.
 
-## Fase 2 — Tablero jugable mínimo (sin arte)
+1. Usar `traspaso_records_y_comodin.md` como fuente estadística versionada. Referencias oficiales: 2 pilas con estrategia casi óptima: Difícil 0.18% (~1/570), Fácil 0.44% (~1/227), n=20.000 mazos por dificultad.
+2. Diseñar una puntuación no lineal basada principalmente en pilas finales; acordar la curva antes de modificar `Juego.calcular_puntaje()`.
+3. Diseñar una eficiencia estimada contra la referencia `viejo_primero` (gap de 0.017 pilas frente al óptimo en pruebas exhaustivas pequeñas). No ejecutar un solver exhaustivo en el cliente.
+4. Sustituir el mensaje fijo de final por mensajes contextuales: rareza, desempeño personal y tono rotativo.
+5. Extender el resumen persistido con versión de esquema para que rankings históricos continúen interpretándose correctamente.
 
-**Objetivo:** ver el juego funcionando en pantalla, con formas simples (rectángulos de color + texto), sin imágenes de cartas todavía.
+Criterio de cierre: fórmula con tests de bordes, mensajes deterministas testeables y compatibilidad de historial verificada.
 
-Tareas:
-1. Escena principal con grilla de "pilas" representadas como `ColorRect` + `Label`.
-2. Botón de mazo que reparte una carta nueva.
-3. Interacción simple (sin drag todavía): tocar pila A, tocar pila B, intentar jugada.
-4. Mostrar mensajes de jugada válida/inválida.
+## Etapa 3 — Consistencia visual móvil
 
-**Criterio de "hecho":** se puede jugar una partida completa de punta a punta, tocando con el dedo en el emulador/celular, aunque se vea feo.
+Objetivo: consolidar una identidad retro sobria, táctil y reutilizable.
 
----
+1. Auditar las escenas `menu_principal`, `selector_dificultad`, `tablero`, `records` y `ajustes_overlay` contra un único contrato de botón.
+2. Convertir el estilo de “Volver” en el estándar para acciones secundarias; rectangular, marfil/amarillo suave, borde y estado presionado claros.
+3. Cambiar el selector para que lea como dos cajas de mazo, no como tarjetas redondeadas; eliminar hover que no aporte en móvil y alargar levemente la apertura.
+4. Integrar `godot/assets/interfaz/cronometro.svg`; reemplazará el chip actual sin cambiar la fuente de tiempo ni el layout salvo necesidad comprobada.
+5. Revisar legibilidad, áreas táctiles y pantallas 16:9 / 20:9 en dispositivo real.
 
-## Fase 3 — Arte real
+Criterio de cierre: mismas jerarquías visuales y feedback de presión en todos los botones, sin regresiones de layout.
 
-**Objetivo:** reemplazar los placeholders por las imágenes reales de cartas.
+## Etapa 4 — Comodín táctico
 
-Tareas:
-1. Importar `cartas_img/` como recursos de Godot (PNG nativo, sin necesidad de Pillow).
-2. Reemplazar el contador "x N" dibujado a mano en Python (`_dibujar_contador` en `imagenes_cartas.py`) por un `Label` superpuesto sobre el sprite — mucho más simple en Godot que redibujar el PNG en cada actualización.
-3. Ajustar tamaños de sprite según resolución de pantalla.
+Objetivo: añadir una decisión estratégica sin alterar las reglas ni introducir una carta persistente.
 
-**Criterio de "hecho":** el tablero se ve con las cartas reales y el contador de cada pila, con la misma información que tenía la versión de escritorio.
+1. Acordar arte y trigger de UI; no hay diseño de carta todavía.
+2. Añadir en `Juego` un único uso por partida y una operación que fuerce una fusión estructural (`i` con `i+2`), reutilizando la fusión actual y sin crear una carta comodín.
+3. Decidir antes de codificar si afecta el puntaje o solo se registra en el resumen. Si se persiste, versionar el esquema y evaluar el cambio de Supabase.
+4. Cubrir uso válido, consumo único, rechazo fuera de rango y ausencia de rastros en el tablero mediante pruebas.
 
----
+Decisiones cerradas: puede usarse en cualquier momento; no esperar a que el tablero esté bloqueado; un comodín de mazo persistente, uno que queda muerto y variantes de múltiples usos están fuera de alcance.
 
-## Fase 4 — Interacción táctil real (drag & drop)
+## Etapa 5 — Release y publicación
 
-**Objetivo:** reemplazar el "tocar A, tocar B" de la Fase 2 por arrastrar-y-soltar con el dedo, tal como funcionaba con mouse en Tkinter.
+1. Definir paquete definitivo, versionado y keystore de release (fuera de Git).
+2. Generar AAB firmado y validarlo mediante testing interno de Play.
+3. Completar ficha, política de privacidad, Data safety, icono, feature graphic y capturas.
+4. Ejecutar testing cerrado y luego producción conforme a los requisitos vigentes de Play Console.
 
-Tareas:
-1. Implementar arrastre con `_gui_input` / `InputEventScreenTouch` sobre los nodos de pila.
-2. Detectar sobre qué pila se soltó (equivalente a `_soltada_sobre_pila` de `interfaz_grafica.py`).
-3. Mantener la regla: solo se compara contra la pila que está exactamente a la izquierda (misma lógica de `_soltar_arrastre`).
+## Trabajo paralelo seguro
 
-**Criterio de "hecho":** arrastrar una pila sobre su vecina izquierda dispara la jugada, igual que en la versión de escritorio.
+| Frente | Alcance independiente | Dependencia |
+| --- | --- | --- |
+| Calidad | Actualizar prueba visual y smoke tests de escenas | Ninguna |
+| UI | Inventario de estilos y propuesta de botón/selector | No modificar nodos ni scripts de tablero sin coordinación |
+| Resultados | Especificación de curva, rareza y mensajes | Usar `traspaso_records_y_comodin.md` |
+| Android | Checklist de export/debug/release | Acceso a SDK, dispositivo y credenciales |
+| Assets | Preparar arte del comodín, iconos y capturas | Trigger de comodín aprobado |
 
----
+Cada frente debe trabajar en archivos distintos y entregar pruebas o capturas de verificación. Integrar primero calidad, luego modelo de resultados y finalmente UI, para evitar adaptar la presentación a contratos que sigan cambiando.
 
-## Fase 5 — Menús y flujo completo
+## Decisiones y referencias vigentes
 
-**Objetivo:** todo lo que rodea a la partida: selector de dificultad, resumen final, guardado de puntaje.
+- `traspaso_records_y_comodin.md` contiene la metodología y resultados completos; es referencia de diseño, no sustituto de este roadmap para el estado actual.
+- `godot/assets/interfaz/cronometro.svg` ya está disponible para la Etapa 3.
+- La puntuación exacta, el trigger/arte del comodín y su efecto sobre score/récords siguen pendientes de aprobación.
 
-Tareas:
-1. Pantalla de selección Fácil/Difícil (equivalente a `_mostrar_selector_dificultad`).
-2. HUD con cronómetro y contador de movimientos.
-3. Pantalla de resumen final con puntaje e interpretación del resultado (`puntuacion.interpretar_resultado`).
-4. Guardado de nombre + puntaje en el historial local.
-5. Pantalla de récords (top 10).
+## Cierre de sesión — 20/07/2026
 
-**Criterio de "hecho":** se puede abrir la app, elegir dificultad, jugar, terminar, guardar el puntaje, y verlo en la tabla de récords — sin pasar por el editor de Godot.
+Completado: roadmap reorganizado según el estado real; incorporado el protocolo de continuidad; leídas las estadísticas y registrado el diseño decidido del comodín; confirmado que el SVG del cronómetro existe.
 
----
+Próxima tarea recomendada: actualizar `godot/tests/test_tablero_visual.gd` al contrato actual y recuperar 46/46 pruebas verdes. Después, integrar el cronómetro dentro de la Etapa 3.
 
-## Fase 6 — Pulido UX móvil
-
-**Objetivo:** que se sienta como una app hecha para celular, no un puerto forzado.
-
-Tareas:
-1. Layout responsive (anchors/containers de Godot) para distintos tamaños de pantalla.
-2. Tamaños táctiles cómodos (botones no tan chicos como para fallar el toque).
-3. Manejo de rotación de pantalla (o forzar orientación fija, si se prefiere).
-4. Ícono de la app y splash screen.
-
-**Criterio de "hecho":** se prueba en al menos 2 dispositivos con tamaños de pantalla distintos y se ve/usa bien en ambos.
-
----
-
-## Fase 7 — Build de release
-
-**Objetivo:** generar el artefacto final que Google Play acepta.
-
-Tareas:
-1. Keystore de release (no el de debug de la Fase 0).
-2. Export preset configurado con: `targetSdkVersion` 36, nombre de paquete definitivo (`com.tunombre.solitariobattle`), versionCode/versionName.
-3. Generar el **AAB** (no APK suelto).
-4. Probar el AAB (vía `bundletool` o subida a testing interno) en un dispositivo real.
-
-**Criterio de "hecho":** un AAB firmado, instalable, con la versión final del juego.
-
----
-
-## Fase 8 — Publicación en Play Store
-
-**Objetivo:** que el juego esté disponible públicamente.
-
-Tareas:
-1. Cuenta de desarrollador en Play Console (USD 25, pago único).
-2. Completar ficha: política de privacidad (URL pública), formulario de "Data safety", ícono 512×512, feature graphic 1024×500, capturas de pantalla.
-3. Subir el AAB a **testing cerrado** (Google exige ~12 testers activos durante 14 días para cuentas nuevas antes de habilitar producción).
-4. Pasar a producción.
-
-**Criterio de "hecho":** la app aparece en Play Store bajo tu cuenta.
-
----
-
-## Cómo trabajar esto con la IA, paso a paso
-
-La idea es **no pedir "migrá todo el juego a Godot" en un solo mensaje**. Eso da un resultado grande, difícil de revisar, y difícil de debuggear si algo sale mal. En cambio, cada sesión de trabajo ataca **una tarea de una fase**, se verifica, y recién ahí se sigue.
-
-Guardá este archivo y, al empezar cada sesión, usá el prompt de abajo como punto de partida (ajustando la fase/tarea puntual).
-
----
-
-## 📋 Prompt maestro (copiar y pegar al arrancar una sesión de trabajo)
-
-```
-Estoy migrando un juego de cartas (Solitario Battle) de Python/Tkinter a
-Godot 4, con el objetivo final de publicarlo en Google Play Store como AAB.
-
-CONTEXTO DEL PROYECTO ORIGINAL:
-El juego tiene la lógica separada de la interfaz:
-- cartas.py: modela Carta, Palo, Mazo
-- tablero.py: modela Pila, Tablero (estado de la mesa)
-- reglas.py: valida y ejecuta jugadas (comparar pila izquierda contra la
-  que está 2 lugares después, salteando la del medio, por valor o palo)
-- juego.py: clase Juego que orquesta mazo + tablero + puntaje + cronómetro
-- puntuacion.py: guarda historial de partidas en JSON
-La interfaz gráfica original (Tkinter) NO se porta — se reconstruye desde
-cero en Godot, pero la LÓGICA de estos módulos sí debe preservarse
-exactamente (tengo tests en Python que documentan el comportamiento
-esperado: test_cartas.py, test_reglas.py, test_tablero.py, test_juego.py,
-test_puntuacion.py).
-
-PLAN GENERAL (8 fases): 0) validar toolchain Godot→APK, 1) portar lógica
-pura a GDScript con tests (GUT), 2) tablero jugable sin arte, 3) arte real,
-4) drag & drop táctil, 5) menús y flujo completo, 6) pulido UX móvil,
-7) build de release (AAB, API 36), 8) publicación en Play Console.
-
-DÓNDE ESTAMOS HOY: Fase [NÚMERO] — [nombre de la fase]
-TAREA PUNTUAL DE ESTA SESIÓN: [describir la tarea específica, chica]
-
-CÓMO QUIERO TRABAJAR:
-- Pasos pequeños y sólidos: no avances a la siguiente tarea sin que yo
-  confirme que la actual funciona.
-- Explicame las decisiones de diseño en GDScript cuando difieran de cómo
-  estaba en Python (por qué, no solo qué).
-- Al final de cada tarea, decime cómo verificar que funcionó (qué probar
-  en el editor o en el dispositivo).
-- Si una tarea depende de algo de una fase anterior que no cerramos, avisame
-  en vez de asumir y seguir.
-
-Adjunto el código Python original como referencia de la lógica a preservar.
-```
-
----
-
-### Notas para vos, no para la IA
-
-- Fases 0 y 7 son las de mayor riesgo real (todo lo relacionado a build/toolchain). Si algo se traba, es ahí — y es exactamente donde Kivy nos hubiera dejado colgados.
-- Fase 1 es la que más aprovecha que ya tenés tests: usalos como criterio objetivo de "está bien portado", no una opinión.
-- No hace falta pasar por las 8 fases sin parar en una sola racha — el plan está pensado justamente para poder cortar en cualquier fase y retomar después sin perder el hilo.
+Decisión técnica: los cambios de resultados no deben ejecutar un solver exhaustivo en Android; la referencia de eficiencia será una heurística o datos precalculados. El comodín es una acción de fusión forzada, no una carta del mazo.

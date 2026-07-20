@@ -192,7 +192,7 @@ stretch_mode = 5
 layout_mode = 2
 theme_override_colors/font_color = Color(0.549, 0.655, 0.604, 1)
 theme_override_font_sizes/font_size = 24
-text = "v0.5 mobile"
+text = "v0.5.1 mobile"
 horizontal_alignment = 1
 
 [node name="Menu" type="MarginContainer" parent="Centro/Columna" unique_id=1459883068]
@@ -226,7 +226,6 @@ text = "Jugar"
 custom_minimum_size = Vector2(0, 76)
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
 theme_override_font_sizes/font_size = 40
 disabled = true
 text = "Mi progreso"
@@ -235,16 +234,13 @@ text = "Mi progreso"
 custom_minimum_size = Vector2(0, 76)
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
 theme_override_font_sizes/font_size = 40
-disabled = true
 text = "Récords"
 
 [node name="Configuracion" type="Button" parent="Centro/Columna/Menu/Tarjeta/Botones" unique_id=1721442808]
 custom_minimum_size = Vector2(0, 76)
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
 theme_override_font_sizes/font_size = 40
 text = "Configuración"
 
@@ -255,5 +251,5 @@ size_flags_vertical = 3
 theme_override_font_sizes/font_size = 40
 text = "Salir"
 
-[node name="AjustesOverlay" parent="." instance=ExtResource("9_ajustes")]
+[node name="AjustesOverlay" parent="." unique_id=1818191482 instance=ExtResource("9_ajustes")]
 layout_mode = 1
