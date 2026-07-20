@@ -22,11 +22,11 @@ const ESTILO_SECUNDARIO_HOVER := preload("res://assets/estilos/boton_secundario_
 @onready var grilla_pilas: GridContainer = $Margen/Columna/TableroScroll/Centro/Pilas
 @onready var boton_mazo: MazoVisual = $Margen/Columna/Mazo
 @onready var boton_finalizar: Button = $Margen/Columna/Finalizar
-@onready var estado_label: Label = $Margen/Columna/Encabezado/TituloYEstado/InfoFila/Estado
-@onready var tiempo_label: Label = $Margen/Columna/Encabezado/TituloYEstado/InfoFila/Tiempo
+@onready var estado_label: Label = $Margen/Columna/EncabezadoPanel/Encabezado/TituloYEstado/Estado
+@onready var tiempo_label: Label = $Margen/Columna/EncabezadoPanel/Encabezado/ChipTiempo/Fila/Tiempo
 @onready var mensaje_label: Label = $Margen/Columna/Mensaje
 
-@onready var boton_menu_hamburguesa: Button = $Margen/Columna/Encabezado/BotonMenu
+@onready var boton_menu_hamburguesa: Button = $Margen/Columna/EncabezadoPanel/Encabezado/BotonMenu
 @onready var menu_pausa: Control = $MenuPausa
 @onready var tarjeta_pausa: Control = $MenuPausa/Centro/Tarjeta
 @onready var boton_continuar: Button = $MenuPausa/Centro/Tarjeta/Columna/Continuar
@@ -38,16 +38,16 @@ const ESTILO_SECUNDARIO_HOVER := preload("res://assets/estilos/boton_secundario_
 
 @onready var pantalla_fin: Control = $PantallaFin
 @onready var tarjeta_fin: Control = $PantallaFin/Centro/Tarjeta
-@onready var interpretacion_label: Label = $PantallaFin/Centro/Tarjeta/Columna/Interpretacion
-@onready var valor_puntaje: Label = $PantallaFin/Centro/Tarjeta/Columna/Estadisticas/ChipPuntaje/Columna/Valor
-@onready var valor_pilas: Label = $PantallaFin/Centro/Tarjeta/Columna/Estadisticas/ChipPilas/Columna/Valor
-@onready var valor_movimientos: Label = $PantallaFin/Centro/Tarjeta/Columna/Estadisticas/ChipMovimientos/Columna/Valor
-@onready var valor_duracion: Label = $PantallaFin/Centro/Tarjeta/Columna/Estadisticas/ChipDuracion/Columna/Valor
-@onready var campo_nombre: LineEdit = $PantallaFin/Centro/Tarjeta/Columna/Nombre
-@onready var boton_guardar_record: Button = $PantallaFin/Centro/Tarjeta/Columna/GuardarRecord
-@onready var mensaje_guardado_label: Label = $PantallaFin/Centro/Tarjeta/Columna/MensajeGuardado
-@onready var boton_jugar_de_nuevo: Button = $PantallaFin/Centro/Tarjeta/Columna/Botones/JugarDeNuevo
-@onready var boton_volver_menu_fin: Button = $PantallaFin/Centro/Tarjeta/Columna/Botones/VolverMenu
+@onready var interpretacion_label: Label = $PantallaFin/Centro/Tarjeta/Fila/ZonaMedallon/Interpretacion
+@onready var valor_puntaje: Label = $PantallaFin/Centro/Tarjeta/Fila/ZonaMedallon/Medallon/Columna/Valor
+@onready var valor_pilas: Label = $PantallaFin/Centro/Tarjeta/Fila/ZonaDetalle/Estadisticas/ValorPilas
+@onready var valor_movimientos: Label = $PantallaFin/Centro/Tarjeta/Fila/ZonaDetalle/Estadisticas/ValorMovimientos
+@onready var valor_duracion: Label = $PantallaFin/Centro/Tarjeta/Fila/ZonaDetalle/Estadisticas/ValorDuracion
+@onready var campo_nombre: LineEdit = $PantallaFin/Centro/Tarjeta/Fila/ZonaDetalle/Nombre
+@onready var boton_guardar_record: Button = $PantallaFin/Centro/Tarjeta/Fila/ZonaDetalle/GuardarRecord
+@onready var mensaje_guardado_label: Label = $PantallaFin/Centro/Tarjeta/Fila/ZonaDetalle/MensajeGuardado
+@onready var boton_jugar_de_nuevo: Button = $PantallaFin/Centro/Tarjeta/Fila/ZonaDetalle/Botones/JugarDeNuevo
+@onready var boton_volver_menu_fin: Button = $PantallaFin/Centro/Tarjeta/Fila/ZonaDetalle/Botones/VolverMenu
 
 @onready var sonido_repartir: AudioStreamPlayer = $SonidoRepartir
 @onready var sonido_movimiento: AudioStreamPlayer = $SonidoMovimiento
@@ -84,6 +84,18 @@ func _ready() -> void:
 	boton_volver_menu_fin.pressed.connect(_al_tocar_volver_menu)
 
 	temporizador_ui.timeout.connect(_actualizar_tiempo)
+
+	# La grilla arranca con SU ancho fijo (5 columnas de cartas), no con
+	# el ancho que ocupen las pilas que haya en ese momento. Si no, cada
+	# vez que se reparte una carta nueva, el GridContainer crece un
+	# casillero y el HBoxContainer que lo centra ("Centro") lo vuelve a
+	# recentrar en pantalla — dando la sensación de que la fila entera
+	# "se desliza" hacia la izquierda con cada carta repartida, en vez
+	# de que la primera carta quede clavada en el primer casillero desde
+	# el arranque.
+	var separacion: int = grilla_pilas.get_theme_constant("h_separation")
+	grilla_pilas.custom_minimum_size.x = grilla_pilas.columns * TAMANIO_CASILLERO.x \
+		+ (grilla_pilas.columns - 1) * separacion
 
 	_refrescar_tablero()
 

@@ -1,11 +1,9 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://scripts/selector_dificultad.gd" id="1_selector"]
-[ext_resource type="StyleBox" path="res://assets/estilos/tarjeta_dificultad_facil.tres" id="2_facil"]
-[ext_resource type="StyleBox" path="res://assets/estilos/tarjeta_dificultad_dificil.tres" id="3_dificil"]
+[ext_resource type="StyleBox" path="res://assets/estilos/caja_dificultad_facil.tres" id="2_facil"]
+[ext_resource type="StyleBox" path="res://assets/estilos/caja_dificultad_dificil.tres" id="3_dificil"]
 [ext_resource type="StyleBox" path="res://assets/estilos/tarjeta_toque_normal.tres" id="4_toque"]
-[ext_resource type="StyleBox" path="res://assets/estilos/tarjeta_toque_hover.tres" id="5_toque_hover"]
-[ext_resource type="StyleBox" path="res://assets/estilos/tarjeta_toque_presionado.tres" id="6_toque_pres"]
 [ext_resource type="StyleBox" path="res://assets/estilos/boton_secundario.tres" id="7_secundario"]
 [ext_resource type="StyleBox" path="res://assets/estilos/boton_secundario_hover.tres" id="8_secundario_hover"]
 [ext_resource type="FontVariation" path="res://assets/fuentes/noto_sans_titulo.tres" id="9_titulo"]
@@ -74,84 +72,90 @@ layout_mode = 2
 theme_override_constants/separation = 22
 alignment = 1
 
-[node name="Facil" type="PanelContainer" parent="Centro/Columna/Tarjetas"]
-custom_minimum_size = Vector2(240, 420)
+[node name="Facil" type="Control" parent="Centro/Columna/Tarjetas"]
+custom_minimum_size = Vector2(240, 390)
 layout_mode = 2
-theme_override_styles/panel = ExtResource("2_facil")
 
-[node name="Columna" type="VBoxContainer" parent="Centro/Columna/Tarjetas/Facil"]
-layout_mode = 2
-theme_override_constants/separation = 4
-alignment = 1
-
-[node name="Abanico" type="Control" parent="Centro/Columna/Tarjetas/Facil/Columna"]
-custom_minimum_size = Vector2(190, 150)
-layout_mode = 2
-size_flags_horizontal = 4
+[node name="Cartas" type="Control" parent="Centro/Columna/Tarjetas/Facil"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 
-[node name="CartaA" type="TextureRect" parent="Centro/Columna/Tarjetas/Facil/Columna/Abanico"]
+[node name="CartaA" type="TextureRect" parent="Centro/Columna/Tarjetas/Facil/Cartas"]
 layout_mode = 0
-offset_left = 24.0
-offset_top = 23.5
-offset_right = 96.0
-offset_bottom = 136.5
-pivot_offset = Vector2(36, 56.5)
-rotation_degrees = -16.0
+offset_left = 54.0
+offset_top = 210.0
+offset_right = 154.0
+offset_bottom = 367.0
 mouse_filter = 2
 texture = ExtResource("13_copas7")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="CartaC" type="TextureRect" parent="Centro/Columna/Tarjetas/Facil/Columna/Abanico"]
+[node name="CartaB" type="TextureRect" parent="Centro/Columna/Tarjetas/Facil/Cartas"]
 layout_mode = 0
-offset_left = 94.0
-offset_top = 23.5
-offset_right = 166.0
-offset_bottom = 136.5
-pivot_offset = Vector2(36, 56.5)
-rotation_degrees = 16.0
+offset_left = 62.0
+offset_top = 210.0
+offset_right = 162.0
+offset_bottom = 367.0
 mouse_filter = 2
 texture = ExtResource("12_bastos11")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="CartaB" type="TextureRect" parent="Centro/Columna/Tarjetas/Facil/Columna/Abanico"]
+[node name="CartaC" type="TextureRect" parent="Centro/Columna/Tarjetas/Facil/Cartas"]
 layout_mode = 0
-offset_left = 59.0
-offset_top = 9.5
-offset_right = 131.0
-offset_bottom = 122.5
-pivot_offset = Vector2(36, 56.5)
+offset_left = 70.0
+offset_top = 210.0
+offset_right = 170.0
+offset_bottom = 367.0
 mouse_filter = 2
 texture = ExtResource("11_oros1")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="EspacioAbanicoNumero" type="Control" parent="Centro/Columna/Tarjetas/Facil/Columna"]
-custom_minimum_size = Vector2(0, 4)
-layout_mode = 2
+[node name="Caja" type="PanelContainer" parent="Centro/Columna/Tarjetas/Facil"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 130.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = ExtResource("2_facil")
 
-[node name="Numero" type="Label" parent="Centro/Columna/Tarjetas/Facil/Columna"]
+[node name="Columna" type="VBoxContainer" parent="Centro/Columna/Tarjetas/Facil/Caja"]
+layout_mode = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="Numero" type="Label" parent="Centro/Columna/Tarjetas/Facil/Caja/Columna"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.42, 0.78, 0.65, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.45)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 3
 theme_override_fonts/font = ExtResource("10_negrita")
-theme_override_font_sizes/font_size = 52
+theme_override_font_sizes/font_size = 54
 text = "40"
 horizontal_alignment = 1
 
-[node name="Cartas" type="Label" parent="Centro/Columna/Tarjetas/Facil/Columna"]
+[node name="Cartas" type="Label" parent="Centro/Columna/Tarjetas/Facil/Caja/Columna"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.68, 0.75, 0.72, 1)
 theme_override_font_sizes/font_size = 15
 text = "CARTAS"
 horizontal_alignment = 1
 
-[node name="EspacioNumeroNombre" type="Control" parent="Centro/Columna/Tarjetas/Facil/Columna"]
-custom_minimum_size = Vector2(0, 14)
+[node name="EspacioNumeroNombre" type="Control" parent="Centro/Columna/Tarjetas/Facil/Caja/Columna"]
+custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
 
-[node name="Nombre" type="Label" parent="Centro/Columna/Tarjetas/Facil/Columna"]
+[node name="Nombre" type="Label" parent="Centro/Columna/Tarjetas/Facil/Caja/Columna"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
 theme_override_fonts/font = ExtResource("9_titulo")
@@ -159,7 +163,7 @@ theme_override_font_sizes/font_size = 28
 text = "CLÁSICO"
 horizontal_alignment = 1
 
-[node name="Caption" type="Label" parent="Centro/Columna/Tarjetas/Facil/Columna"]
+[node name="Caption" type="Label" parent="Centro/Columna/Tarjetas/Facil/Caja/Columna"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.68, 0.75, 0.72, 1)
 theme_override_font_sizes/font_size = 14
@@ -167,90 +171,101 @@ text = "Sin 8 ni 9"
 horizontal_alignment = 1
 
 [node name="Toque" type="Button" parent="Centro/Columna/Tarjetas/Facil"]
-layout_mode = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 focus_mode = 0
 theme_override_styles/normal = ExtResource("4_toque")
-theme_override_styles/hover = ExtResource("5_toque_hover")
-theme_override_styles/pressed = ExtResource("6_toque_pres")
+theme_override_styles/hover = ExtResource("4_toque")
+theme_override_styles/pressed = ExtResource("4_toque")
 
-[node name="Dificil" type="PanelContainer" parent="Centro/Columna/Tarjetas"]
-custom_minimum_size = Vector2(240, 420)
+[node name="Dificil" type="Control" parent="Centro/Columna/Tarjetas"]
+custom_minimum_size = Vector2(240, 390)
 layout_mode = 2
-theme_override_styles/panel = ExtResource("3_dificil")
 
-[node name="Columna" type="VBoxContainer" parent="Centro/Columna/Tarjetas/Dificil"]
-layout_mode = 2
-theme_override_constants/separation = 4
-alignment = 1
-
-[node name="Abanico" type="Control" parent="Centro/Columna/Tarjetas/Dificil/Columna"]
-custom_minimum_size = Vector2(190, 150)
-layout_mode = 2
-size_flags_horizontal = 4
+[node name="Cartas" type="Control" parent="Centro/Columna/Tarjetas/Dificil"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 
-[node name="CartaA" type="TextureRect" parent="Centro/Columna/Tarjetas/Dificil/Columna/Abanico"]
+[node name="CartaA" type="TextureRect" parent="Centro/Columna/Tarjetas/Dificil/Cartas"]
 layout_mode = 0
-offset_left = 24.0
-offset_top = 23.5
-offset_right = 96.0
-offset_bottom = 136.5
-pivot_offset = Vector2(36, 56.5)
-rotation_degrees = -16.0
+offset_left = 54.0
+offset_top = 210.0
+offset_right = 154.0
+offset_bottom = 367.0
 mouse_filter = 2
 texture = ExtResource("14_espadas9")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="CartaC" type="TextureRect" parent="Centro/Columna/Tarjetas/Dificil/Columna/Abanico"]
+[node name="CartaB" type="TextureRect" parent="Centro/Columna/Tarjetas/Dificil/Cartas"]
 layout_mode = 0
-offset_left = 94.0
-offset_top = 23.5
-offset_right = 166.0
-offset_bottom = 136.5
-pivot_offset = Vector2(36, 56.5)
-rotation_degrees = 16.0
+offset_left = 62.0
+offset_top = 210.0
+offset_right = 162.0
+offset_bottom = 367.0
 mouse_filter = 2
 texture = ExtResource("17_copas12")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="CartaB" type="TextureRect" parent="Centro/Columna/Tarjetas/Dificil/Columna/Abanico"]
+[node name="CartaC" type="TextureRect" parent="Centro/Columna/Tarjetas/Dificil/Cartas"]
 layout_mode = 0
-offset_left = 59.0
-offset_top = 9.5
-offset_right = 131.0
-offset_bottom = 122.5
-pivot_offset = Vector2(36, 56.5)
+offset_left = 70.0
+offset_top = 210.0
+offset_right = 170.0
+offset_bottom = 367.0
 mouse_filter = 2
 texture = ExtResource("16_oros8")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="EspacioAbanicoNumero" type="Control" parent="Centro/Columna/Tarjetas/Dificil/Columna"]
-custom_minimum_size = Vector2(0, 4)
-layout_mode = 2
+[node name="Caja" type="PanelContainer" parent="Centro/Columna/Tarjetas/Dificil"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 130.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = ExtResource("3_dificil")
 
-[node name="Numero" type="Label" parent="Centro/Columna/Tarjetas/Dificil/Columna"]
+[node name="Columna" type="VBoxContainer" parent="Centro/Columna/Tarjetas/Dificil/Caja"]
+layout_mode = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="Numero" type="Label" parent="Centro/Columna/Tarjetas/Dificil/Caja/Columna"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.8471, 0.3569, 0.2706, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.45)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 3
 theme_override_fonts/font = ExtResource("10_negrita")
-theme_override_font_sizes/font_size = 52
+theme_override_font_sizes/font_size = 54
 text = "48"
 horizontal_alignment = 1
 
-[node name="Cartas" type="Label" parent="Centro/Columna/Tarjetas/Dificil/Columna"]
+[node name="Cartas" type="Label" parent="Centro/Columna/Tarjetas/Dificil/Caja/Columna"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.68, 0.75, 0.72, 1)
 theme_override_font_sizes/font_size = 15
 text = "CARTAS"
 horizontal_alignment = 1
 
-[node name="EspacioNumeroNombre" type="Control" parent="Centro/Columna/Tarjetas/Dificil/Columna"]
-custom_minimum_size = Vector2(0, 14)
+[node name="EspacioNumeroNombre" type="Control" parent="Centro/Columna/Tarjetas/Dificil/Caja/Columna"]
+custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
 
-[node name="Nombre" type="Label" parent="Centro/Columna/Tarjetas/Dificil/Columna"]
+[node name="Nombre" type="Label" parent="Centro/Columna/Tarjetas/Dificil/Caja/Columna"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
 theme_override_fonts/font = ExtResource("9_titulo")
@@ -258,7 +273,7 @@ theme_override_font_sizes/font_size = 28
 text = "DIFÍCIL"
 horizontal_alignment = 1
 
-[node name="Caption" type="Label" parent="Centro/Columna/Tarjetas/Dificil/Columna"]
+[node name="Caption" type="Label" parent="Centro/Columna/Tarjetas/Dificil/Caja/Columna"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.68, 0.75, 0.72, 1)
 theme_override_font_sizes/font_size = 14
@@ -266,11 +281,16 @@ text = "Mazo completo"
 horizontal_alignment = 1
 
 [node name="Toque" type="Button" parent="Centro/Columna/Tarjetas/Dificil"]
-layout_mode = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 focus_mode = 0
 theme_override_styles/normal = ExtResource("4_toque")
-theme_override_styles/hover = ExtResource("5_toque_hover")
-theme_override_styles/pressed = ExtResource("6_toque_pres")
+theme_override_styles/hover = ExtResource("4_toque")
+theme_override_styles/pressed = ExtResource("4_toque")
 
 [node name="EspacioTarjetasVolver" type="Control" parent="Centro/Columna"]
 custom_minimum_size = Vector2(0, 4)
