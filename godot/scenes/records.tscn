@@ -134,65 +134,7 @@ layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="Grilla" type="GridContainer" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll" unique_id=1837580083]
+[node name="Lista" type="VBoxContainer" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll" unique_id=1837580083]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/h_separation = 24
-theme_override_constants/v_separation = 14
-columns = 8
-
-[node name="ColN" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla" unique_id=199402996]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
-theme_override_fonts/font = ExtResource("2_noto")
-theme_override_font_sizes/font_size = 16
-text = "#"
-
-[node name="ColJugador" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla" unique_id=601577728]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
-theme_override_fonts/font = ExtResource("2_noto")
-theme_override_font_sizes/font_size = 16
-text = "Jugador"
-
-[node name="ColPuntaje" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla" unique_id=1636550385]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
-theme_override_fonts/font = ExtResource("2_noto")
-theme_override_font_sizes/font_size = 16
-text = "Puntaje"
-
-[node name="ColDificultad" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla" unique_id=186289823]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
-theme_override_fonts/font = ExtResource("2_noto")
-theme_override_font_sizes/font_size = 16
-text = "Dificultad"
-
-[node name="ColPilas" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla" unique_id=182569361]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
-theme_override_fonts/font = ExtResource("2_noto")
-theme_override_font_sizes/font_size = 16
-text = "Pilas"
-
-[node name="ColMovimientos" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla" unique_id=681623300]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
-theme_override_fonts/font = ExtResource("2_noto")
-theme_override_font_sizes/font_size = 16
-text = "Movim."
-
-[node name="ColDuracion" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla" unique_id=1327381639]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
-theme_override_fonts/font = ExtResource("2_noto")
-theme_override_font_sizes/font_size = 16
-text = "Duración"
-
-[node name="ColFecha" type="Label" parent="Margen/Columna/PanelTabla/MargenInterior/Interior/Scroll/Grilla" unique_id=1850162200]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.898, 0.745, 0.447, 1)
-theme_override_fonts/font = ExtResource("2_noto")
-theme_override_font_sizes/font_size = 16
-text = "Fecha"
+theme_override_constants/separation = 12

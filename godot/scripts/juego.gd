@@ -25,8 +25,9 @@ var mazo: Carta.Mazo
 var tablero: Tablero
 var terminada := false
 var cantidad_cartas_inicial: int
-var momento_inicio: float
+var momento_inicio: float = 0.0
 var momento_fin: Variant = null
+var _cronometro_iniciado := false
 var cantidad_jugadas_realizadas := 0
 var cartas_iniciales: Array[Carta] = []
 var oportunidades_antiguas_bloqueadas := 0
@@ -43,13 +44,21 @@ func _init(p_dificultad: int = Carta.Dificultad.DIFICIL) -> void:
 	cartas_iniciales = mazo.cartas.duplicate()
 	tablero = Tablero.new()
 	cantidad_cartas_inicial = mazo.quedan_cartas()
-	momento_inicio = Time.get_unix_time_from_system()
+	# El cronómetro NO arranca acá: arranca con la primera carta repartida
+	# (ver _iniciar_cronometro_si_hace_falta, llamado desde repartir_carta).
 
 
 func repartir_carta() -> void:
 	if terminada or not quedan_cartas_en_mano():
 		return
+	_iniciar_cronometro_si_hace_falta()
 	tablero.agregar_carta_nueva(mazo.repartir_una())
+
+
+func _iniciar_cronometro_si_hace_falta() -> void:
+	if not _cronometro_iniciado:
+		_cronometro_iniciado = true
+		momento_inicio = Time.get_unix_time_from_system()
 
 
 func intentar_jugada(indice_izquierda: int) -> bool:
@@ -127,6 +136,8 @@ func duracion_segundos() -> int:
 
 
 func duracion_segundos_precisa() -> float:
+	if not _cronometro_iniciado:
+		return 0.0
 	var fin: float = momento_fin if momento_fin != null else Time.get_unix_time_from_system()
 	return fin - momento_inicio
 

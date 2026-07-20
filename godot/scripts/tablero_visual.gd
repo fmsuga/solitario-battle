@@ -26,6 +26,7 @@ const ESTILO_SECUNDARIO_PRESIONADO := preload("res://assets/estilos/boton_secund
 @onready var boton_terminar_partida: Button = $Margen/Columna/MazoYTiempo/TerminarPartida
 @onready var estado_label: Label = $Margen/Columna/EncabezadoPanel/Encabezado/TituloYEstado/Estado
 @onready var tiempo_principal_label: Label = $Margen/Columna/EncabezadoPanel/Encabezado/Reloj/Pantalla/TiempoPrincipal
+@onready var tiempo_centesimas_label: Label = $Margen/Columna/EncabezadoPanel/Encabezado/Reloj/Pantalla/Centesimas
 @onready var mensaje_label: Label = $Margen/Columna/Mensaje
 
 @onready var boton_menu_hamburguesa: Button = $Margen/Columna/EncabezadoPanel/Encabezado/BotonMenu
@@ -86,6 +87,8 @@ func _ready() -> void:
 	boton_ajustes.pressed.connect(_al_tocar_ajustes)
 	boton_volver_menu_pausa.pressed.connect(_armar_o_confirmar.bind(boton_volver_menu_pausa, _al_tocar_volver_menu))
 	temporizador_confirmacion.timeout.connect(_al_vencer_confirmacion)
+	temporizador_ui.timeout.connect(_actualizar_tiempo)
+	temporizador_ui.stop() # arranca recién con la primera carta (ver _al_tocar_mazo)
 
 	boton_guardar_record.pressed.connect(_al_tocar_guardar_record)
 	boton_jugar_de_nuevo.pressed.connect(_al_tocar_reiniciar)
@@ -113,8 +116,12 @@ func _al_tocar_mazo() -> void:
 	if not juego.quedan_cartas_en_mano():
 		return
 
+	var era_primera_carta := juego.tablero.cantidad_pilas() == 0
 	juego.repartir_carta()
 	sonido_repartir.play()
+	if era_primera_carta:
+		temporizador_ui.start()
+		_actualizar_tiempo()
 	indice_seleccionado = -1
 	_refrescar_tablero()
 
@@ -374,8 +381,11 @@ func _ocultar_mensaje() -> void:
 
 func _actualizar_tiempo() -> void:
 	var tiempo := juego.duracion_segundos_precisa()
-	var segundos_totales := int(tiempo)
-	tiempo_principal_label.text = "%02d:%02d:%02d" % [segundos_totales / 3600, (segundos_totales / 60) % 60, segundos_totales % 60]
+	var minutos := int(tiempo) / 60
+	var segundos := int(tiempo) % 60
+	var centesimas := int((tiempo - int(tiempo)) * 100)
+	tiempo_principal_label.text = "%02d:%02d:" % [minutos, segundos]
+	tiempo_centesimas_label.text = "%02d" % centesimas
 	if juego.esta_terminada():
 		temporizador_ui.stop()
 
