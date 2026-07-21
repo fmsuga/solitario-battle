@@ -30,14 +30,14 @@ def test_finalizar_bloquea_repartir_y_jugadas():
     assert resultado is False
 
 
-def test_calcular_puntaje_formula_base_sin_bono():
+def test_calcular_puntaje_incluye_bono_por_pocas_pilas_en_dificil():
     juego = Juego()
     # sin repartir nada, en teoría 0 pilas; pero la fórmula se basa en
     # CANTIDAD_CARTAS_EN_MAZO - pilas_finales, probamos con pilas simuladas
     for _ in range(5):
         juego.repartir_carta()
     pilas = juego.cantidad_pilas_finales()
-    puntaje_esperado = round(((48 - pilas) * 10) * 1.5)
+    puntaje_esperado = round(((48 - pilas) * 10 + 1400) * 1.5)
     assert juego.calcular_puntaje() == puntaje_esperado
 
 
@@ -117,7 +117,7 @@ def test_juego_facil_arranca_con_40_cartas_y_calcula_puntaje_bien():
     for _ in range(5):
         juego.repartir_carta()
     pilas = juego.cantidad_pilas_finales()
-    assert juego.calcular_puntaje() == (40 - pilas) * 10
+    assert juego.calcular_puntaje() == (40 - pilas) * 10 + 1400
 
 
 def test_puntaje_premia_mucho_mas_las_pocas_pilas_y_dificil():
